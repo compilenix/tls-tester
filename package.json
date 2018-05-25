@@ -1,0 +1,29 @@
+{
+  "name": "tls-tester",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "tls",
+    "x509",
+    "ssl"
+  ],
+  "author": "compilenix@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^6.0.1",
+    "moment": "^2.22.1",
+    "sslinfo": "^0.2.0"
+  },
+  "devDependencies": {
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.1.0",
+    "standard": "^11.0.1"
+  }
+}
