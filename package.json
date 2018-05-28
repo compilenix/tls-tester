@@ -16,6 +16,7 @@
   "dependencies": {
     "fs-extra": "^6.0.1",
     "moment": "^2.22.1",
+    "slack-node": "^0.1.8",
     "sslinfo": "^0.2.0"
   },
   "devDependencies": {

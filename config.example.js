@@ -1,12 +1,21 @@
+/// <reference path="typings/index.d.ts"/>
+
 class Config {
   constructor () {
-    this.Version = '1'
+    this.version = 1
     this.validUntilDays = 10
 
+    this.enableSlack = true
+    this.slackWebHookUri = 'https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx'
+    this.slackChannel = ''
+    this.slackUsername = 'tls-tester-bot'
+
+    this.botName = 'tls-tester-bot'
+    this.botIcon = 'https://compilenix.org/cdn/Compilenix.png'
+
+    /** @type {ConfigDomain[]} */
     this.domains = [
-      { host: 'expired.badssl.com' },
-      // 'services.plan.de'
-      // 'github.com'
+      { host: 'www.microsoft.com', servername: '', port: 443 }
     ]
   }
 }

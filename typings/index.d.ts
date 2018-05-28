@@ -1,10 +1,8 @@
 /// <reference path="X509.d.ts" />
+/// <reference path="sslinfo.d.ts" />
 
-interface ServerResult {
-  host: string
-  port: number
-  cert: X509
-  certPEM: string
-  protocols: TlsProtocol[]
-  ciphers: Cipher
+interface ConfigDomain {
+  host: string,
+  port: number,
+  servername: string
 }
