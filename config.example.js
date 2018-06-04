@@ -4,6 +4,7 @@ class Config {
   constructor () {
     this.version = 1
     this.validUntilDays = 10
+    this.connectionTimeoutMs = 2000 // connection timeout per socket (there are possibly many connections per host)
 
     this.enableSlack = true
     this.slackWebHookUri = 'https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx'
@@ -13,11 +14,22 @@ class Config {
     this.botName = 'tls-tester-bot'
     this.botIcon = 'https://compilenix.org/cdn/Compilenix.png'
 
+    // possible warnings to ignore:
+    // - Expire
+    // - PubKeySize
+    // - NoCertificateTransparency
+    // - AES128-SHA
+    // - AES256-SHA
+    // - AES128-SHA256
+    // - AES256-SHA256
+    // - AES256-GCM-SHA384
+    // - AES128-GCM-SHA256
+
     /** @type {ConfigDomain[]} */
     this.domains = [
-      { host: 'www.microsoft.com', servername: '', port: 443 },
-      { host: 'expired.badssl.com', servername: '', port: 443 },
-      { host: 'mozilla-old.badssl.com', servername: '', port: 443 }
+      { host: 'www.microsoft.com', ignore: ['AES128-GCM-SHA256', 'AES256-GCM-SHA384', 'AES256-SHA256', 'AES128-SHA256', 'AES256-SHA', 'AES128-SHA'] },
+      { host: 'expired.badssl.com', ignore: ['AES128-GCM-SHA256', 'AES256-GCM-SHA384', 'AES256-SHA256', 'AES128-SHA256', 'AES256-SHA', 'AES128-SHA'] },
+      { host: 'mozilla-old.badssl.com' }
     ]
   }
 }
