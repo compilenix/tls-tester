@@ -54,14 +54,16 @@ function overrideOptionsFromCommandLineArguments () {
     config.ignore = ignore
   }
 
-  config.domains = []
-  const domains = domainList.split(`,`)
-  for (let index = 0; index < domains.length; index++) {
-    const host = domains[index]
-    config.domains.push({
-      host: host,
-      port: config.defaultPort || 443
-    })
+  if (domainList !== '') {
+    config.domains = []
+    const domains = domainList.split(`,`)
+    for (let index = 0; index < domains.length; index++) {
+      const host = domains[index]
+      config.domains.push({
+        host: host,
+        port: config.defaultPort || 443
+      })
+    }
   }
 }
 
