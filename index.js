@@ -5,6 +5,7 @@ const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
 const punycode = require('./node_modules/punycode')
+const argv = require('minimist')(process.argv.slice(2))
 
 if (!fs.existsSync('./config.js')) {
   fs.copySync('./config.example.js', './config.js')
@@ -22,6 +23,57 @@ function uniqueArray (arr) {
 
 function sleep (/** @type {Number} */ ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function overrideOptionsFromCommandLineArguments () {
+  if (process.argv.length < 3) return
+  let domainList = ''
+  let ignoreList = ''
+
+  for (var propertyName in argv) {
+    if (config[propertyName] === undefined) continue
+    const propertyValue = argv[propertyName]
+
+    if (config[propertyName] === true || config[propertyName] === false) {
+      if (config[propertyName] === 'true') config[propertyName] = true
+      if (config[propertyName] === 'false') config[propertyName] = false
+    } else {
+      config[propertyName] = propertyValue
+    }
+
+    if (propertyName === 'domains') {
+      domainList = propertyValue
+    }
+    if (propertyName === 'ignore') {
+      ignoreList = propertyValue
+    }
+  }
+
+  if (ignoreList !== '') {
+    const ignore = ignoreList.split(',')
+    config.ignore = ignore
+  }
+
+  config.domains = []
+  const domains = domainList.split(`,`)
+  for (let index = 0; index < domains.length; index++) {
+    const host = domains[index]
+    config.domains.push({
+      host: host,
+      port: config.defaultPort || 443
+    })
+  }
+}
+
+/**
+ * @param {string} warning
+ * @param {ServerResult} result
+ */
+function isWarningEnabled (warning, result = undefined) {
+  const containsWarningPredicate = /** @param {string} x */ x => x === warning
+  const isIgnoredOnAllDomains = config.ignore.some(containsWarningPredicate)
+  const isIgnoredOnThisHost = (result !== undefined && result.ignoreWarnings.some(containsWarningPredicate))
+  return !isIgnoredOnAllDomains && !isIgnoredOnThisHost
 }
 
 async function sendReport () {
@@ -102,6 +154,7 @@ function addMessage (message, host, port, level = 'error') {
 
 /**
  * @param {string[]} ciphers
+ * @param {ServerResult} result
  * @param {string} host
  * @param {number} port
  */
@@ -148,22 +201,22 @@ function checkWeakCipherUsage (ciphers, result, host, port) {
   if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0) {
     addMessage(`Weak cipher usage of PSK`, host, port)
   }
-  if (ciphers.includes('AES128-SHA') && !result.ignoreWarnings.some(x => x === 'AES128-SHA')) {
+  if (ciphers.includes('AES128-SHA') && isWarningEnabled('AES128-SHA', result)) {
     addMessage(`Weak cipher usage of AES128-SHA`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-SHA') && !result.ignoreWarnings.some(x => x === 'AES256-SHA')) {
+  if (ciphers.includes('AES256-SHA') && isWarningEnabled('AES256-SHA', result)) {
     addMessage(`Weak cipher usage of AES256-SHA`, host, port, 'warn')
   }
-  if (ciphers.includes('AES128-SHA256') && !result.ignoreWarnings.some(x => x === 'AES128-SHA256')) {
+  if (ciphers.includes('AES128-SHA256') && isWarningEnabled('AES128-SHA256', result)) {
     addMessage(`Weak cipher usage of AES128-SHA256`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-SHA256') && !result.ignoreWarnings.some(x => x === 'AES256-SHA256')) {
+  if (ciphers.includes('AES256-SHA256') && isWarningEnabled('AES256-SHA256', result)) {
     addMessage(`Weak cipher usage of AES256-SHA256`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-GCM-SHA384') && !result.ignoreWarnings.some(x => x === 'AES256-GCM-SHA384')) {
+  if (ciphers.includes('AES256-GCM-SHA384') && isWarningEnabled('AES256-GCM-SHA384', result)) {
     addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port, 'warn')
   }
-  if (ciphers.includes('AES128-GCM-SHA256') && !result.ignoreWarnings.some(x => x === 'AES128-GCM-SHA256')) {
+  if (ciphers.includes('AES128-GCM-SHA256') && isWarningEnabled('AES128-GCM-SHA256', result)) {
     addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port, 'warn')
   }
 }
@@ -178,7 +231,7 @@ function checkServerResult (result) {
   const validUntilDaysVolaited = thresholdDate <= moment()
   const daysDifference = Math.abs(moment(result.cert.notAfter).diff(moment(), 'days'))
 
-  if (validUntilDaysVolaited && !result.ignoreWarnings.some(x => x === `Expire`)) {
+  if (validUntilDaysVolaited && isWarningEnabled('Expire', result)) {
     addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays} days by ${daysDifference} days`, result.host, result.port)
   }
 
@@ -194,7 +247,7 @@ function checkServerResult (result) {
     addMessage(`Does not match ${result.host}.\nWe got "${result.cert.altNames}"`, result.host, result.port)
   }
 
-  if (result.cert.publicKey.bitSize < 4096 && !result.ignoreWarnings.some(x => x === 'PubKeySize')) {
+  if (result.cert.publicKey.bitSize < 4096 && isWarningEnabled('PubKeySize', result)) {
     addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, 'warn')
   }
 
@@ -214,7 +267,7 @@ function checkServerResult (result) {
     addMessage(`Modern protocol NOT supported: TLS 1.2`, result.host, result.port)
   }
 
-  if (!result.cert.extensions.cTPrecertificateSCTs && !result.ignoreWarnings.some(x => x === 'NoCertificateTransparency')) {
+  if (!result.cert.extensions.cTPrecertificateSCTs && isWarningEnabled('NoCertificateTransparency', result)) {
     addMessage(`No Certificate Transparency`, result.host, result.port, 'warn')
   }
 
@@ -250,7 +303,7 @@ async function run () {
       continue
     }
     if (!domain.port) {
-      domain.port = 443
+      domain.port = config.defaultPort || 443
     }
 
     isFirstMessageOfItem = true
@@ -294,6 +347,7 @@ async function run () {
 
 (async () => {
   slack.setWebhook(config.slackWebHookUri)
+  overrideOptionsFromCommandLineArguments()
   await run()
   await sendReport()
   if (config.enableConsoleLog) console.log('done')
