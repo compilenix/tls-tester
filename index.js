@@ -336,7 +336,7 @@ async function run () {
           addMessage(`Connection timed-out`, domain.host, domain.port)
           break
         case 'ENOTFOUND':
-          addMessage(`Host cann't be resolved`, domain.host, domain.port)
+          addMessage(`Host can't be resolved`, domain.host, domain.port)
           break
         default:
           addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, domain.host, domain.port)
