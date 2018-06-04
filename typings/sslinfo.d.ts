@@ -3,6 +3,9 @@ interface ServerResult {
   port: number
   cert: X509
   certPEM: string
+  certCa: ?X509
+  certCaPem: ?string
   protocols: TlsProtocol[]
-  ciphers: Cipher
+  ciphers: Cipher,
+  ignoreWarnings: ?string[]
 }

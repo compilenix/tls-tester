@@ -3,6 +3,6 @@
 
 interface ConfigDomain {
   host: string,
-  port: number,
-  servername: string
+  port?: number,
+  ignore?: Warning[]
 }

@@ -1,6 +1,6 @@
 /// <reference path="typings/index.d.ts"/>
 
-const sslinfo = require('sslinfo')
+const sslinfo = require('./sslinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
@@ -26,11 +26,11 @@ async function sendReport () {
   let payloads = []
   let attachments = []
   for (let index = 0; index < messagesToSend.length; index++) {
-    const { message, ts } = messagesToSend[index]
+    const { message, ts, color } = messagesToSend[index]
     const attachment = {
       footer: config.botName || undefined,
       footer_icon: config.botIcon || undefined,
-      color: '#c4463d'
+      color: color
     }
     if (attachment.footer === undefined) delete attachment.footer
     if (attachment.footer_icon === undefined) delete attachment.footer_icon
@@ -68,10 +68,17 @@ async function sendReport () {
  * @param {string} host
  * @param {number} port
  */
-function addMessage (message, host, port) {
+function addMessage (message, host, port, level = 'error') {
+  let color = '#d50200' // error
+  switch (level) {
+    case 'warn':
+      color = '#de9e31'
+      break
+  }
   messagesToSend.push({
     message: `${host}:${port} -> ${message}\n`,
-    ts: Date.now() / 1000
+    ts: Date.now() / 1000,
+    color: color
   })
 }
 
@@ -80,7 +87,7 @@ function addMessage (message, host, port) {
  * @param {string} host
  * @param {number} port
  */
-function checkWeakCipherUsage (ciphers, host, port) {
+function checkWeakCipherUsage (ciphers, result, host, port) {
   if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0) {
     addMessage(`Weak cipher usage of NULL`, host, port)
   }
@@ -123,23 +130,23 @@ function checkWeakCipherUsage (ciphers, host, port) {
   if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0) {
     addMessage(`Weak cipher usage of PSK`, host, port)
   }
-  if (ciphers.includes('AES128-SHA')) {
-    addMessage(`Weak cipher usage of AES128-SHA`, host, port)
+  if (ciphers.includes('AES128-SHA') && !result.ignoreWarnings.some(x => x === 'AES128-SHA')) {
+    addMessage(`Weak cipher usage of AES128-SHA`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-SHA')) {
-    addMessage(`Weak cipher usage of AES256-SHA`, host, port)
+  if (ciphers.includes('AES256-SHA') && !result.ignoreWarnings.some(x => x === 'AES256-SHA')) {
+    addMessage(`Weak cipher usage of AES256-SHA`, host, port, 'warn')
   }
-  if (ciphers.includes('AES128-SHA256')) {
-    addMessage(`Weak cipher usage of AES128-SHA256`, host, port)
+  if (ciphers.includes('AES128-SHA256') && !result.ignoreWarnings.some(x => x === 'AES128-SHA256')) {
+    addMessage(`Weak cipher usage of AES128-SHA256`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-SHA256')) {
-    addMessage(`Weak cipher usage of AES256-SHA256`, host, port)
+  if (ciphers.includes('AES256-SHA256') && !result.ignoreWarnings.some(x => x === 'AES256-SHA256')) {
+    addMessage(`Weak cipher usage of AES256-SHA256`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-GCM-SHA384')) {
-    addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port)
+  if (ciphers.includes('AES256-GCM-SHA384') && !result.ignoreWarnings.some(x => x === 'AES256-GCM-SHA384')) {
+    addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port, 'warn')
   }
-  if (ciphers.includes('AES128-GCM-SHA256')) {
-    addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port)
+  if (ciphers.includes('AES128-GCM-SHA256') && !result.ignoreWarnings.some(x => x === 'AES128-GCM-SHA256')) {
+    addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port, 'warn')
   }
 }
 
@@ -153,7 +160,7 @@ function checkServerResult (result) {
   const validUntilDaysVolaited = thresholdDate <= moment()
   const daysDifference = Math.abs(moment(result.cert.notAfter).diff(moment(), 'days'))
 
-  if (validUntilDaysVolaited) {
+  if (validUntilDaysVolaited && !result.ignoreWarnings.some(x => x === `Expire`)) {
     addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays} days by ${daysDifference} days`, result.host, result.port)
   }
 
@@ -169,8 +176,8 @@ function checkServerResult (result) {
     addMessage(`Does not match ${result.host}.\nWe got "${result.cert.altNames}"`, result.host, result.port)
   }
 
-  if (result.cert.publicKey.bitSize < 4096) {
-    addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port)
+  if (result.cert.publicKey.bitSize < 4096 && !result.ignoreWarnings.some(x => x === 'PubKeySize')) {
+    addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, 'warn')
   }
 
   if (result.cert.signatureAlgorithm.startsWith('sha1')) {
@@ -185,6 +192,24 @@ function checkServerResult (result) {
     addMessage(`Weak / Outdated protocol supported: SSLv2`, result.host, result.port)
   }
 
+  if (!result.ciphers.TLSv1_2_method) {
+    addMessage(`Modern protocol NOT supported: TLS 1.2`, result.host, result.port)
+  }
+
+  if (!result.cert.extensions.cTPrecertificateSCTs && !result.ignoreWarnings.some(x => x === 'NoCertificateTransparency')) {
+    addMessage(`No Certificate Transparency`, result.host, result.port, 'warn')
+  }
+
+  if (result.certCa) {
+    if (result.certCa.signatureAlgorithm.startsWith('sha1')) {
+      addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
+    }
+
+    if (result.certCa.publicKey.bitSize < 2048) {
+      addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 2048 from CA ${result.certCa.subject.commonName}`, result.host, result.port)
+    }
+  }
+
   let ciphers = []
   if (result.ciphers.TLSv1_method && result.ciphers.TLSv1_method.enabled.length > 0) {
     ciphers = ciphers.concat(result.ciphers.TLSv1_method.enabled)
@@ -197,7 +222,7 @@ function checkServerResult (result) {
   }
   ciphers = uniqueArray(ciphers)
 
-  checkWeakCipherUsage(ciphers, result.host, result.port)
+  checkWeakCipherUsage(ciphers, result, result.host, result.port)
 }
 
 async function run () {
@@ -207,20 +232,23 @@ async function run () {
       continue
     }
     if (!domain.port) {
-      addMessage(`port not defined for ${domain}`, domain.host, domain.port)
-      continue
+      domain.port = 443
     }
 
     console.log(`${domain.host}:${domain.port}`)
     domain.host = punycode.toASCII(domain.host)
 
     try {
-      checkServerResult(await sslinfo.getServerResults({
+      /** @type {ServerResult} */
+      const result = await sslinfo.getServerResults({
         host: domain.host,
+        servername: domain.host,
         port: domain.port,
-        // @ts-ignore
-        servername: domain.host
-      }))
+        timeOutMs: config.connectionTimeoutMs,
+        minDHSize: 1
+      })
+      result.ignoreWarnings = domain.ignore || []
+      checkServerResult(result)
     } catch (e) {
       let error = e
       domain.host = punycode.toUnicode(domain.host)
@@ -254,3 +282,4 @@ async function run () {
   await sendReport()
   console.log('done')
 })()
+

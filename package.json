@@ -20,7 +20,11 @@
     "moment": "^2.22.1",
     "punycode": "^2.1.1",
     "slack-node": "^0.1.8",
-    "sslinfo": "^0.2.0"
+    "sslinfo": "^0.2.0",
+    "x509": "^0.3.3",
+    "lodash": "^4.17.5",
+    "openssl-wrapper": "^0.3.4",
+    "q": "^1.5.1"
   },
   "devDependencies": {
     "eslint-config-standard": "^11.0.0",
