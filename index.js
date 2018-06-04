@@ -13,6 +13,8 @@ if (!fs.existsSync('./config.js')) {
 let config = require('./config.js')
 let slack = new Slack()
 let messagesToSend = []
+let isFirstMessageOfItem = true
+let isFirstOveralMessage = true
 
 function uniqueArray (arr) {
   return Array.from(new Set(arr))
@@ -23,6 +25,7 @@ function sleep (/** @type {Number} */ ms) {
 }
 
 async function sendReport () {
+  if (!config.enableSlack) return
   let payloads = []
   let attachments = []
   for (let index = 0; index < messagesToSend.length; index++) {
@@ -69,6 +72,21 @@ async function sendReport () {
  * @param {number} port
  */
 function addMessage (message, host, port, level = 'error') {
+  if (config.enableConsoleLog) {
+    if (isFirstMessageOfItem) {
+      let newLine = '\n'
+      if (isFirstOveralMessage) newLine = ''
+      console.log(`${newLine}${host}:${port}`)
+    }
+
+    console.log(`[${new Date().toUTCString()}] ${host}:${port} -> ${message}`)
+    isFirstMessageOfItem = false
+  }
+
+  if (!config.enableSlack) {
+    return
+  }
+
   let color = '#d50200' // error
   switch (level) {
     case 'warn':
@@ -235,11 +253,10 @@ async function run () {
       domain.port = 443
     }
 
-    console.log(`${domain.host}:${domain.port}`)
+    isFirstMessageOfItem = true
     domain.host = punycode.toASCII(domain.host)
 
     try {
-      /** @type {ServerResult} */
       const result = await sslinfo.getServerResults({
         host: domain.host,
         servername: domain.host,
@@ -271,8 +288,7 @@ async function run () {
           break
       }
     }
-
-    await sleep(100)
+    isFirstOveralMessage = false
   }
 }
 
@@ -280,6 +296,5 @@ async function run () {
   slack.setWebhook(config.slackWebHookUri)
   await run()
   await sendReport()
-  console.log('done')
+  if (config.enableConsoleLog) console.log('done')
 })()
-

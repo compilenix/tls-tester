@@ -6,7 +6,8 @@ class Config {
     this.validUntilDays = 10
     this.connectionTimeoutMs = 2000 // connection timeout per socket (there are possibly many connections per host)
 
-    this.enableSlack = true
+    this.enableConsoleLog = true
+    this.enableSlack = false
     this.slackWebHookUri = 'https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx'
     this.slackChannel = ''
     this.slackUsername = 'tls-tester-bot'

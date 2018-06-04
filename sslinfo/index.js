@@ -14,8 +14,8 @@ module.exports = {
   /**
    * Determine the supported SSL/TLS protocols and ciphers for a server.
    * Returns a promise.
-   * @param hostData {{ host: string, port: number, timeOutMs: number }}
-   * @returns {promise}
+   * @param hostData {{ host: string, port: number, timeOutMs: number, servername?: string, minDHSize?: number }}
+   * @returns {Promise<ServerResult>}
    */
   getServerResults: function(hostData) {
     return sslinfo.getServerResults(hostData);
