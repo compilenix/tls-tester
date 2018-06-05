@@ -25,6 +25,15 @@ function sleep (/** @type {Number} */ ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+/**
+ * @param {string} value
+ * @param {string} pattern
+ * @returns {boolean}
+ */
+function matchesWildcardExpression (value, pattern) {
+  new RegExp(value.replace(/\*/g, '([^*]+)'), 'g').test(pattern)
+}
+
 function overrideOptionsFromCommandLineArguments () {
   if (process.argv.length < 3) return
   let domainList = ''
@@ -245,8 +254,16 @@ function checkServerResult (result) {
     addMessage(`Does not have any altName`, result.host, result.port)
   }
 
-  if (result.cert.altNames.indexOf(asciiHostname) === -1 && result.cert.altNames.indexOf('*') >= 0) {
-    addMessage(`Does not match ${result.host}.\nWe got "${result.cert.altNames}"`, result.host, result.port)
+  if (result.cert.altNames.indexOf(asciiHostname) !== 0 || !result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+    let matchesAnyWildcard = false
+    if (result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+      for (let index = 0; index < result.cert.altNames.length; index++) {
+        const element = result.cert.altNames[index]
+        if (matchesWildcardExpression(asciiHostname, element)) matchesAnyWildcard = true
+      }
+    }
+
+    if (!matchesAnyWildcard) addMessage(`Does not match ${result.host}. We got "${result.cert.altNames}"`, result.host, result.port)
   }
 
   if (result.cert.publicKey.bitSize < 4096 && isWarningEnabled('PubKeySize', result)) {
