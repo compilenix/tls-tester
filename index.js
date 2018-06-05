@@ -254,16 +254,21 @@ function checkServerResult (result) {
     addMessage(`Does not have any altName`, result.host, result.port)
   }
 
-  if (result.cert.altNames.indexOf(asciiHostname) !== 0 || !result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
-    let matchesAnyWildcard = false
-    if (result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
-      for (let index = 0; index < result.cert.altNames.length; index++) {
-        const element = result.cert.altNames[index]
-        if (matchesWildcardExpression(asciiHostname, element)) matchesAnyWildcard = true
+  if (result.cert.altNames.indexOf(asciiHostname) === -1) {
+    const message = `Does not match ${result.host}. We got "${result.cert.altNames}"`
+    if (!result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+      addMessage(message, result.host, result.port)
+    } else {
+      let matchesAnyWildcard = false
+      if (result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+        for (let index = 0; index < result.cert.altNames.length; index++) {
+          const element = result.cert.altNames[index]
+          if (matchesWildcardExpression(asciiHostname, element)) matchesAnyWildcard = true
+        }
       }
-    }
 
-    if (!matchesAnyWildcard) addMessage(`Does not match ${result.host}. We got "${result.cert.altNames}"`, result.host, result.port)
+      if (!matchesAnyWildcard) addMessage(message, result.host, result.port)
+    }
   }
 
   if (result.cert.publicKey.bitSize < 4096 && isWarningEnabled('PubKeySize', result)) {
