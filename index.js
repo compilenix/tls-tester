@@ -31,7 +31,10 @@ function sleep (/** @type {Number} */ ms) {
  * @returns {boolean}
  */
 function matchesWildcardExpression (value, pattern) {
-  new RegExp(value.replace(/\*/g, '([^*]+)'), 'g').test(pattern)
+  const transformRegex = pattern.replace(/\*/g, '([^*]+)')
+  const expression = new RegExp(transformRegex, 'g')
+  const doesMatch = expression.test(value)
+  return doesMatch
 }
 
 function overrideOptionsFromCommandLineArguments () {
@@ -352,7 +355,7 @@ async function run () {
           addMessage(`Connection reset`, domain.host, domain.port)
           break
         case 'ECONNREFUSED':
-          addMessage(`Connection refused`, domain.host, domain.port)
+          addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, domain.host, domain.port)
           break
         case 'ETIMEDOUT':
           addMessage(`Connection timed-out`, domain.host, domain.port)
