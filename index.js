@@ -278,6 +278,10 @@ function checkServerResult (result) {
     addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, 'warn')
   }
 
+  if (result.cert.signatureAlgorithm.startsWith('md')) {
+    addMessage(`Weak signature algorithm (md): ${result.cert.signatureAlgorithm}`, result.host, result.port)
+  }
+
   if (result.cert.signatureAlgorithm.startsWith('sha1')) {
     addMessage(`Weak signature algorithm (sha1): ${result.cert.signatureAlgorithm}`, result.host, result.port)
   }
@@ -299,6 +303,10 @@ function checkServerResult (result) {
   }
 
   if (result.certCa) {
+    if (result.certCa.signatureAlgorithm.startsWith('md')) {
+      addMessage(`Weak signature algorithm of CA (md): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
+    }
+
     if (result.certCa.signatureAlgorithm.startsWith('sha1')) {
       addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
     }
