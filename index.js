@@ -25,6 +25,18 @@ function sleep (/** @type {Number} */ ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+/**
+ * @param {string} value
+ * @param {string} pattern
+ * @returns {boolean}
+ */
+function matchesWildcardExpression (value, pattern) {
+  const transformRegex = pattern.replace(/\*/g, '([^*]+)')
+  const expression = new RegExp(transformRegex, 'g')
+  const doesMatch = expression.test(value)
+  return doesMatch
+}
+
 function overrideOptionsFromCommandLineArguments () {
   if (process.argv.length < 3) return
   let domainList = ''
@@ -245,12 +257,29 @@ function checkServerResult (result) {
     addMessage(`Does not have any altName`, result.host, result.port)
   }
 
-  if (result.cert.altNames.indexOf(asciiHostname) === -1 && result.cert.altNames.indexOf('*') >= 0) {
-    addMessage(`Does not match ${result.host}.\nWe got "${result.cert.altNames}"`, result.host, result.port)
+  if (result.cert.altNames.indexOf(asciiHostname) === -1) {
+    const message = `Does not match ${result.host}. We got "${result.cert.altNames}"`
+    if (!result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+      addMessage(message, result.host, result.port)
+    } else {
+      let matchesAnyWildcard = false
+      if (result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+        for (let index = 0; index < result.cert.altNames.length; index++) {
+          const element = result.cert.altNames[index]
+          if (matchesWildcardExpression(asciiHostname, element)) matchesAnyWildcard = true
+        }
+      }
+
+      if (!matchesAnyWildcard) addMessage(message, result.host, result.port)
+    }
   }
 
   if (result.cert.publicKey.bitSize < 4096 && isWarningEnabled('PubKeySize', result)) {
     addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, 'warn')
+  }
+
+  if (result.cert.signatureAlgorithm.startsWith('md')) {
+    addMessage(`Weak signature algorithm (md): ${result.cert.signatureAlgorithm}`, result.host, result.port)
   }
 
   if (result.cert.signatureAlgorithm.startsWith('sha1')) {
@@ -274,6 +303,10 @@ function checkServerResult (result) {
   }
 
   if (result.certCa) {
+    if (result.certCa.signatureAlgorithm.startsWith('md')) {
+      addMessage(`Weak signature algorithm of CA (md): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
+    }
+
     if (result.certCa.signatureAlgorithm.startsWith('sha1')) {
       addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
     }
@@ -330,13 +363,16 @@ async function run () {
           addMessage(`Connection reset`, domain.host, domain.port)
           break
         case 'ECONNREFUSED':
-          addMessage(`Connection refused`, domain.host, domain.port)
+          addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, domain.host, domain.port)
           break
         case 'ETIMEDOUT':
           addMessage(`Connection timed-out`, domain.host, domain.port)
           break
         case 'ENOTFOUND':
-          addMessage(`Host can't be resolved`, domain.host, domain.port)
+          addMessage(`Host can't be resolved / found -> ENOTFOUND`, domain.host, domain.port)
+          break
+        case 'EAI_AGAIN':
+          addMessage(`Host can't be resolved -> EAI_AGAIN`, domain.host, domain.port)
           break
         default:
           addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, domain.host, domain.port)
