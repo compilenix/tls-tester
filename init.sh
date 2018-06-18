@@ -5,8 +5,7 @@ export NVM_DIR="$(realpath $HOME/.nvm)"
   echo "you need nvm (https://github.com/creationix/nvm)"; exit 1
 }
 
-nvm install $(cat ./.nvmrc)
-nvm use $(cat ./.nvmrc)
+nvm i
 npm install
 npm rebuild
 nvm use default

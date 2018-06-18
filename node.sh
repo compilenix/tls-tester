@@ -9,6 +9,6 @@ export NVM_DIR="$(realpath $HOME/.nvm)"
 nvm --version 1>/dev/null 2>&1
 [ $? -ne 0 ] && echo "you need nvm (https://github.com/creationix/nvm)" && exit 1
 
-nvm use $(cat ./.nvmrc)
+nvm i
 nvm run $*
 nvm use default
