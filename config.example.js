@@ -4,7 +4,7 @@ class Config {
   constructor () {
     this.version = 1
     this.validUntilDays = 10
-    this.connectionTimeoutMs = 2000 // connection timeout per socket (there are possibly many connections per host)
+    this.connectionTimeoutMs = 30000 // connection timeout per socket (there are possibly many connections per host)
     this.defaultPort = 443
     this.ignore = [] // this warnings / errors will be ignored on all domains
 
