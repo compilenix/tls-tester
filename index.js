@@ -83,10 +83,10 @@ function overrideOptionsFromCommandLineArguments () {
  * @param {string} warning
  * @param {ServerResult} result
  */
-function isWarningEnabled (warning, result = undefined) {
-  const containsWarningPredicate = /** @param {string} x */ x => x === warning
-  const isIgnoredOnAllDomains = config.ignore.some(containsWarningPredicate)
-  const isIgnoredOnThisHost = (result !== undefined && result.ignoreWarnings.some(containsWarningPredicate))
+function isReportingEnabled (warning, result = undefined) {
+  const containsReportingPredicate = /** @param {string} x */ x => x === warning
+  const isIgnoredOnAllDomains = config.ignore.some(containsReportingPredicate)
+  const isIgnoredOnThisHost = (result !== undefined && result.ignoreReports.some(containsReportingPredicate))
   return !isIgnoredOnAllDomains && !isIgnoredOnThisHost
 }
 
@@ -173,64 +173,64 @@ function addMessage (message, host, port, level = 'error') {
  * @param {number} port
  */
 function checkWeakCipherUsage (ciphers, result, host, port) {
-  if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0 && isReportingEnabled('HasCipherNULL', result)) {
     addMessage(`Weak cipher usage of NULL`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('RC') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('RC') >= 0) >= 0 && isReportingEnabled('HasCipherRC', result)) {
     addMessage(`Weak cipher usage of RC2/4/5`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('IDEA') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('IDEA') >= 0) >= 0 && isReportingEnabled('HasCipherIDEA', result)) {
     addMessage(`Weak cipher usage of IDEA`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('DSS') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('DSS') >= 0) >= 0 && isReportingEnabled('HasCipherDSS', result)) {
     addMessage(`Weak cipher usage of DSS`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('ADH') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('ADH') >= 0) >= 0 && isReportingEnabled('HasCipherADH', result)) {
     addMessage(`Weak cipher usage of ADH`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('CAMELLIA') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('CAMELLIA') >= 0) >= 0 && isReportingEnabled('HasCipherCAMELLIA', result)) {
     addMessage(`Weak cipher usage of CAMELLIA`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('SEED') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('SEED') >= 0) >= 0 && isReportingEnabled('HasCipherSEED', result)) {
     addMessage(`Weak cipher usage of SEED`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('AECDH') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('AECDH') >= 0) >= 0 && isReportingEnabled('HasCipherAECDH', result)) {
     addMessage(`Weak cipher usage of AECDH`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('MD5') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('MD5') >= 0) >= 0 && isReportingEnabled('HasCipherMD5', result)) {
     addMessage(`Weak cipher usage of MD5`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('SRP') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('SRP') >= 0) >= 0 && isReportingEnabled('HasCipherSRP', result)) {
     addMessage(`Weak cipher usage of SRP`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('DES') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('DES') >= 0) >= 0 && isReportingEnabled('HasCipherDES', result)) {
     addMessage(`Weak cipher usage of DES`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('3DES') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('3DES') >= 0) >= 0 && isReportingEnabled('HasCipherDES', result)) {
     addMessage(`Weak cipher usage of 3DES`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('ARIA') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('ARIA') >= 0) >= 0 && isReportingEnabled('HasCipherARIA', result)) {
     addMessage(`Weak cipher usage of ARIA`, host, port)
   }
-  if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0) {
+  if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0 && isReportingEnabled('HasCipherPSK', result)) {
     addMessage(`Weak cipher usage of PSK`, host, port)
   }
-  if (ciphers.includes('AES128-SHA') && isWarningEnabled('AES128-SHA', result)) {
+  if (ciphers.includes('AES128-SHA') && isReportingEnabled('AES128-SHA', result)) {
     addMessage(`Weak cipher usage of AES128-SHA`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-SHA') && isWarningEnabled('AES256-SHA', result)) {
+  if (ciphers.includes('AES256-SHA') && isReportingEnabled('AES256-SHA', result)) {
     addMessage(`Weak cipher usage of AES256-SHA`, host, port, 'warn')
   }
-  if (ciphers.includes('AES128-SHA256') && isWarningEnabled('AES128-SHA256', result)) {
+  if (ciphers.includes('AES128-SHA256') && isReportingEnabled('AES128-SHA256', result)) {
     addMessage(`Weak cipher usage of AES128-SHA256`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-SHA256') && isWarningEnabled('AES256-SHA256', result)) {
+  if (ciphers.includes('AES256-SHA256') && isReportingEnabled('AES256-SHA256', result)) {
     addMessage(`Weak cipher usage of AES256-SHA256`, host, port, 'warn')
   }
-  if (ciphers.includes('AES256-GCM-SHA384') && isWarningEnabled('AES256-GCM-SHA384', result)) {
+  if (ciphers.includes('AES256-GCM-SHA384') && isReportingEnabled('AES256-GCM-SHA384', result)) {
     addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port, 'warn')
   }
-  if (ciphers.includes('AES128-GCM-SHA256') && isWarningEnabled('AES128-GCM-SHA256', result)) {
+  if (ciphers.includes('AES128-GCM-SHA256') && isReportingEnabled('AES128-GCM-SHA256', result)) {
     addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port, 'warn')
   }
 }
@@ -245,21 +245,21 @@ function checkServerResult (result) {
   const validUntilDaysVolaited = thresholdDate <= moment()
   const daysDifference = Math.abs(moment(result.cert.notAfter).diff(moment(), 'days'))
 
-  if (validUntilDaysVolaited && isWarningEnabled('Expire', result)) {
+  if (validUntilDaysVolaited && isReportingEnabled('Expire', result)) {
     addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, result.host, result.port)
   }
 
-  if (moment(result.cert.notBefore) > moment()) {
+  if (moment(result.cert.notBefore) > moment() && isReportingEnabled('NotYetValid', result)) {
     addMessage(`Is not yet valid; notBefore ${result.cert.notBefore}`, result.host, result.port)
   }
 
-  if (!result.cert.altNames || result.cert.altNames.length === 0) {
+  if ((!result.cert.altNames || result.cert.altNames.length === 0) && isReportingEnabled('NoAltName', result)) {
     addMessage(`Does not have any altName`, result.host, result.port)
   }
 
   if (result.cert.altNames.indexOf(asciiHostname) === -1) {
     const message = `Does not match ${result.host}. We got "${result.cert.altNames}"`
-    if (!result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+    if ((!result.cert.altNames.some(x => x.indexOf('*') >= 0)) && isReportingEnabled('CommonNameInvalid', result)) {
       addMessage(message, result.host, result.port)
     } else {
       let matchesAnyWildcard = false
@@ -270,52 +270,53 @@ function checkServerResult (result) {
         }
       }
 
-      if (!matchesAnyWildcard) addMessage(message, result.host, result.port)
+      if (!matchesAnyWildcard && isReportingEnabled('CommonNameInvalid', result)) addMessage(message, result.host, result.port)
     }
   }
 
-  if (result.cert.publicKey.bitSize < 4096 && isWarningEnabled('PubKeySize', result)) {
+  if (result.cert.publicKey.bitSize < 4096 && isReportingEnabled('PubKeySize', result)) {
     addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, 'warn')
   }
 
-  if (result.cert.signatureAlgorithm.startsWith('md')) {
+  if (result.cert.signatureAlgorithm.startsWith('md') && isReportingEnabled('HasSomeMessageDigestAlgorithm', result)) {
     addMessage(`Weak signature algorithm (md): ${result.cert.signatureAlgorithm}`, result.host, result.port)
   }
 
-  if (result.cert.signatureAlgorithm.startsWith('sha1')) {
+  if (result.cert.signatureAlgorithm.startsWith('sha1') && isReportingEnabled('SHA1', result)) {
     addMessage(`Weak signature algorithm (sha1): ${result.cert.signatureAlgorithm}`, result.host, result.port)
   }
 
-  if (result.ciphers.SSLv3_method) {
+  if (result.ciphers.SSLv3_method && isReportingEnabled('SSLv3', result)) {
     addMessage(`Weak / Outdated protocol supported: SSLv3`, result.host, result.port)
   }
 
-  if (result.ciphers.SSLv2_method) {
+  if (result.ciphers.SSLv2_method && isReportingEnabled('SSLv2', result)) {
     addMessage(`Weak / Outdated protocol supported: SSLv2`, result.host, result.port)
   }
 
-  if (!result.ciphers.TLSv1_2_method) {
+  if (!result.ciphers.TLSv1_2_method && isReportingEnabled('NoTLSv1.2', result)) {
     addMessage(`Modern protocol NOT supported: TLS 1.2`, result.host, result.port)
   }
 
-  if (!result.cert.extensions.cTPrecertificateSCTs && isWarningEnabled('NoCertificateTransparency', result)) {
+  if (!result.cert.extensions.cTPrecertificateSCTs && isReportingEnabled('NoCertificateTransparency', result)) {
     addMessage(`No Certificate Transparency`, result.host, result.port, 'warn')
   }
 
   if (result.certCa) {
-    if (result.certCa.signatureAlgorithm.startsWith('md')) {
+    if (result.certCa.signatureAlgorithm.startsWith('md') && isReportingEnabled('HasSomeMessageDigestAlgorithmOnCA', result)) {
       addMessage(`Weak signature algorithm of CA (md): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
     }
 
-    if (result.certCa.signatureAlgorithm.startsWith('sha1')) {
+    if (result.certCa.signatureAlgorithm.startsWith('sha1') && isReportingEnabled('SHA1OnCA', result)) {
       addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
     }
 
-    if (result.certCa.publicKey.bitSize < 2048) {
+    if (result.certCa.publicKey.bitSize < 2048 && isReportingEnabled('PubKeySizeOnCA', result)) {
       addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 2048 from CA ${result.certCa.subject.commonName}`, result.host, result.port)
     }
   }
 
+  /** @type {string[]} */
   let ciphers = []
   if (result.ciphers.TLSv1_method && result.ciphers.TLSv1_method.enabled.length > 0) {
     ciphers = ciphers.concat(result.ciphers.TLSv1_method.enabled)
@@ -327,6 +328,9 @@ function checkServerResult (result) {
     ciphers = ciphers.concat(result.ciphers.TLSv1_2_method.enabled)
   }
   ciphers = uniqueArray(ciphers)
+  for (let index = 0; index < ciphers.length; index++) {
+    ciphers[index] = ciphers[index].toUpperCase()
+  }
 
   checkWeakCipherUsage(ciphers, result, result.host, result.port)
 }
@@ -352,7 +356,7 @@ async function run () {
         timeOutMs: config.connectionTimeoutMs,
         minDHSize: 1
       })
-      result.ignoreWarnings = domain.ignore || []
+      result.ignoreReports = domain.ignore || []
       checkServerResult(result)
     } catch (e) {
       let error = e

@@ -19,14 +19,39 @@ class Config {
 
     // possible warnings to ignore:
     // - Expire
+    // - NotYetValid
     // - PubKeySize
+    // - PubKeySizeOnCA
     // - NoCertificateTransparency
+    // - NoAltName
+    // - CommonNameInvalid
+    // - SHA1
+    // - SHA1OnCA
+    // - SSLv3
+    // - SSLv2
+    // - NoTLSv1.2
+    // - HasSomeMessageDigestAlgorithm
+    // - HasSomeMessageDigestAlgorithmOnCA
     // - AES128-SHA
     // - AES256-SHA
     // - AES128-SHA256
     // - AES256-SHA256
     // - AES256-GCM-SHA384
     // - AES128-GCM-SHA256
+    // - HasCipherNULL
+    // - HasCipherRC
+    // - HasCipherIDEA
+    // - HasCipherDSS
+    // - HasCipherADH
+    // - HasCipherCAMELLIA
+    // - HasCipherSEED
+    // - HasCipherAECDH
+    // - HasCipherMD5
+    // - HasCipherSRP
+    // - HasCipherDES
+    // - HasCipherDES
+    // - HasCipherARIA
+    // - HasCipherPSK
 
     /** @type {ConfigDomain[]} */
     this.domains = [

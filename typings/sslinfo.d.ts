@@ -7,5 +7,5 @@ interface ServerResult {
   certCaPem: ?string
   protocols: TlsProtocol[]
   ciphers: Cipher,
-  ignoreWarnings: ?string[]
+  ignoreReports: ?string[]
 }
