@@ -246,7 +246,7 @@ function checkServerResult (result) {
   const daysDifference = Math.abs(moment(result.cert.notAfter).diff(moment(), 'days'))
 
   if (validUntilDaysVolaited && isWarningEnabled('Expire', result)) {
-    addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays} days by ${daysDifference} days`, result.host, result.port)
+    addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, result.host, result.port)
   }
 
   if (moment(result.cert.notBefore) > moment()) {
