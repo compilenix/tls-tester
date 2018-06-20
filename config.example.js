@@ -6,7 +6,7 @@ class Config {
     this.validUntilDays = 10
     this.connectionTimeoutMs = 2000 // connection timeout per socket (there are possibly many connections per host)
     this.defaultPort = 443
-    this.ignore = [] // this warnings will be ignored on all domains
+    this.ignore = [] // this warnings / errors will be ignored on all domains
 
     this.enableConsoleLog = true
     this.enableSlack = false
@@ -17,7 +17,7 @@ class Config {
     this.botName = 'tls-tester-bot'
     this.botIcon = 'https://compilenix.org/cdn/Compilenix.png'
 
-    // possible warnings to ignore:
+    // possible warnings / errors to ignore:
     // - Expire
     // - NotYetValid
     // - PubKeySize
