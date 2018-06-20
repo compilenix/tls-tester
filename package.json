@@ -15,24 +15,28 @@
   ],
   "author": "compilenix@gmail.com",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.compilenix.org/Compilenix/tls-tester"
+  },
   "dependencies": {
-    "fs-extra": "^6.0.1",
-    "lodash": "^4.17.10",
-    "minimist": "^1.2.0",
-    "moment": "^2.22.2",
-    "openssl-wrapper": "^0.3.4",
-    "punycode": "^2.1.1",
-    "q": "^1.5.1",
-    "slack-node": "^0.1.8",
-    "sslinfo": "^0.2.0",
-    "x509": "^0.3.3"
+    "fs-extra": "6.0.1",
+    "lodash": "4.17.10",
+    "minimist": "1.2.0",
+    "moment": "2.22.2",
+    "openssl-wrapper": "0.3.4",
+    "punycode": "2.1.1",
+    "q": "1.5.1",
+    "slack-node": "0.1.8",
+    "sslinfo": "0.2.0",
+    "x509": "0.3.3"
   },
   "devDependencies": {
-    "eslint-config-standard": "^11.0.0",
-    "eslint-plugin-import": "^2.12.0",
-    "eslint-plugin-node": "^6.0.1",
-    "eslint-plugin-promise": "^3.8.0",
-    "eslint-plugin-standard": "^3.1.0",
-    "standard": "^11.0.1"
+    "eslint-config-standard": "11.0.0",
+    "eslint-plugin-import": "2.12.0",
+    "eslint-plugin-node": "6.0.1",
+    "eslint-plugin-promise": "3.8.0",
+    "eslint-plugin-standard": "3.1.0",
+    "standard": "11.0.1"
   }
 }
