@@ -353,7 +353,7 @@ async function run () {
         host: domain.host,
         servername: domain.host,
         port: domain.port,
-        timeOutMs: config.connectionTimeoutMs,
+        timeOutMs: config.connectionTimeoutMs || 30000,
         minDHSize: 1
       })
       result.ignoreReports = domain.ignore || []

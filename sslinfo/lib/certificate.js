@@ -35,18 +35,18 @@ function getRawCertificate(hostData) {
     socket.end()
     setTimeout(() => {
       socket.destroy()
-    }, 1000)
+    }, hostData.timeOutMs || 30000)
   });
   socket.setEncoding(`utf8`)
   socket.setKeepAlive(false)
   socket.setNoDelay(true)
-  socket.setTimeout(hostData.timeOutMs)
+  socket.setTimeout(hostData.timeOutMs || 30000)
   socket.on('error', function(error) {
     deferred.reject(error);
     socket.end()
     setTimeout(() => {
       socket.destroy()
-    }, 1000)
+    }, hostData.timeOutMs || 30000)
   });
   return deferred.promise;
 }

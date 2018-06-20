@@ -83,12 +83,12 @@ function _trySSLMethod(options) {
       socket.end()
       setTimeout(() => {
         socket.destroy()
-      }, 1000)
+      }, options.timeOutMs || 30000)
     });
     socket.setEncoding(`utf8`)
     socket.setKeepAlive(false)
     socket.setNoDelay(true)
-    socket.setTimeout(options.timeOutMs)
+    socket.setTimeout(options.timeOutMs || 30000)
     socket.on('error', function(error) {
       if (error.code && error.code === 'ECONNRESET') {
         deferred.resolve({protocol: options.protocol.name, name: options.protocol.commonName, enabled: false});
@@ -114,7 +114,7 @@ function _trySSLMethod(options) {
       socket.end()
       setTimeout(() => {
         socket.destroy()
-      }, 1000)
+      }, options.timeOutMs || 30000)
     });
   } catch (e) {
     var msg = e.toString();
