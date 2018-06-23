@@ -79,11 +79,6 @@ function _trySSLMethod(options) {
   try {
     var socket = tls.connect(fullOptions, () => {
       deferred.resolve({ protocol: options.protocol.name, name: options.protocol.commonName, enabled: true });
-
-      socket.end()
-      setTimeout(() => {
-        socket.destroy()
-      }, options.timeOutMs || 30000)
     });
     socket.setEncoding(`utf8`)
     socket.setKeepAlive(false)
@@ -111,10 +106,6 @@ function _trySSLMethod(options) {
           deferred.reject(error);
         }
       }
-      socket.end()
-      setTimeout(() => {
-        socket.destroy()
-      }, options.timeOutMs || 30000)
     });
   } catch (e) {
     var msg = e.toString();

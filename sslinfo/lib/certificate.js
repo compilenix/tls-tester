@@ -31,11 +31,6 @@ function getRawCertificate(hostData) {
   var socket = tls.connect(fullOptions, () => {
     hostData.peerCert = socket.getPeerCertificate(true);
     deferred.resolve(hostData);
-
-    socket.end()
-    setTimeout(() => {
-      socket.destroy()
-    }, hostData.timeOutMs || 30000)
   });
   socket.setEncoding(`utf8`)
   socket.setKeepAlive(false)
@@ -43,10 +38,6 @@ function getRawCertificate(hostData) {
   socket.setTimeout(hostData.timeOutMs || 30000)
   socket.on('error', function(error) {
     deferred.reject(error);
-    socket.end()
-    setTimeout(() => {
-      socket.destroy()
-    }, hostData.timeOutMs || 30000)
   });
   return deferred.promise;
 }

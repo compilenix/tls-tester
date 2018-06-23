@@ -86,11 +86,6 @@ function trySSLCipher(options) {
 
   var socket = tls.connect(fullOptions, () => {
     connected = true;
-
-    socket.end()
-    setTimeout(() => {
-      socket.destroy()
-    }, options.timeOutMs || 30000)
     deferred.resolve(_.assign({}, baseResponse, {enabled: true}));
   });
   socket.setEncoding(`utf8`)
@@ -121,10 +116,6 @@ function trySSLCipher(options) {
         error: error
       });
     }
-    socket.end()
-    setTimeout(() => {
-      socket.destroy()
-    }, options.timeOutMs || 30000)
   });
   return deferred.promise;
 }
