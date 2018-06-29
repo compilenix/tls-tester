@@ -1,11 +1,17 @@
 /// <reference path="typings/index.d.ts"/>
 
+const http = require('http')
+const https = require('https')
+const url = require('url')
+const { URL: Url } = url
+
 const sslinfo = require('./sslinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
 const punycode = require('./node_modules/punycode')
 const argv = require('minimist')(process.argv.slice(2))
+const uuidv4 = require('uuid/v4')
 
 if (!fs.existsSync('./config.js')) {
   fs.copySync('./config.example.js', './config.js')
@@ -14,6 +20,8 @@ if (!fs.existsSync('./config.js')) {
 let config = require('./config.js')
 let slack = new Slack()
 let messagesToSend = []
+/** @type {TaskResult} */
+let taskResult = null
 let isFirstMessageOfItem = true
 let isFirstOveralMessage = true
 
@@ -90,8 +98,14 @@ function isReportingEnabled (warning, result = undefined) {
   return !isIgnoredOnAllDomains && !isIgnoredOnThisHost
 }
 
-async function sendReport () {
-  if (!config.enableSlack) return
+/**
+ * @param {string} uri
+ */
+async function sendReportWebook (uri) {
+  if (uri) {
+    slack.setWebhook(uri)
+  }
+
   let payloads = []
   let attachments = []
   for (let index = 0; index < messagesToSend.length; index++) {
@@ -130,14 +144,72 @@ async function sendReport () {
     })
     await sleep(1000)
   }
+
+  slack.setWebhook(config.slackWebHookUri)
+}
+
+/**
+ * @param {Task} task
+ */
+async function sendReport (task) {
+  if (!config.enableSlack && !task.callback && !task.webhook) return
+
+  if (task && task.callback) {
+    const callback = new Url(task.callback)
+    let requestOptions = {
+      timeout: 2500,
+      protocol: callback.protocol,
+      href: callback.href,
+      method: 'POST',
+      host: callback.host,
+      port: callback.port,
+      hostname: callback.hostname,
+      pathname: callback.pathname,
+      path: `${callback.pathname}${callback.search}`,
+      search: callback.search,
+      hash: callback.hash
+    }
+
+    /** @type {http.ClientRequest} */
+    let req
+    await new Promise((resolve, reject) => {
+      switch (callback.protocol.toLowerCase()) {
+        case 'http:':
+          req = http.request(requestOptions, res => {
+            // ignore
+          })
+          break
+        case 'https:':
+          req = https.request(requestOptions, res => {
+            // ignore
+          })
+          break
+        default:
+          break
+      }
+
+      req.setHeader('content-type', 'application/json')
+      req.end(JSON.stringify(taskResult, null, 4))
+      req.on('close', () => {
+        resolve()
+      })
+      req.on('error', (e) => {
+        resolve()
+      })
+    })
+  }
+
+  if (config.enableSlack || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : null)
 }
 
 /**
  * @param {string} message
  * @param {string} host
  * @param {number} port
+ * @param {Task} task
+ * @param {string} level
  */
-function addMessage (message, host, port, level = 'error') {
+function addMessage (message, host, port, task, level = 'error') {
   if (config.enableConsoleLog) {
     if (isFirstMessageOfItem) {
       let newLine = '\n'
@@ -147,6 +219,19 @@ function addMessage (message, host, port, level = 'error') {
 
     console.log(`[${new Date().toUTCString()}] ${host}:${port} -> ${message}`)
     isFirstMessageOfItem = false
+  }
+
+  if (task && task.callback) {
+    if (taskResult === null) {
+      taskResult = {
+        host: host,
+        port: port,
+        id: task.id,
+        items: [message]
+      }
+    } else {
+      taskResult.items.push(message)
+    }
   }
 
   if (!config.enableSlack) {
@@ -171,74 +256,76 @@ function addMessage (message, host, port, level = 'error') {
  * @param {ServerResult} result
  * @param {string} host
  * @param {number} port
+ * @param {Task} task
  */
-function checkWeakCipherUsage (ciphers, result, host, port) {
+function checkWeakCipherUsage (ciphers, result, host, port, task) {
   if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0 && isReportingEnabled('HasCipherNULL', result)) {
-    addMessage(`Weak cipher usage of NULL`, host, port)
+    addMessage(`Weak cipher usage of NULL`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('RC') >= 0) >= 0 && isReportingEnabled('HasCipherRC', result)) {
-    addMessage(`Weak cipher usage of RC2/4/5`, host, port)
+    addMessage(`Weak cipher usage of RC2/4/5`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('IDEA') >= 0) >= 0 && isReportingEnabled('HasCipherIDEA', result)) {
-    addMessage(`Weak cipher usage of IDEA`, host, port)
+    addMessage(`Weak cipher usage of IDEA`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('DSS') >= 0) >= 0 && isReportingEnabled('HasCipherDSS', result)) {
-    addMessage(`Weak cipher usage of DSS`, host, port)
+    addMessage(`Weak cipher usage of DSS`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('ADH') >= 0) >= 0 && isReportingEnabled('HasCipherADH', result)) {
-    addMessage(`Weak cipher usage of ADH`, host, port)
+    addMessage(`Weak cipher usage of ADH`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('CAMELLIA') >= 0) >= 0 && isReportingEnabled('HasCipherCAMELLIA', result)) {
-    addMessage(`Weak cipher usage of CAMELLIA`, host, port)
+    addMessage(`Weak cipher usage of CAMELLIA`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('SEED') >= 0) >= 0 && isReportingEnabled('HasCipherSEED', result)) {
-    addMessage(`Weak cipher usage of SEED`, host, port)
+    addMessage(`Weak cipher usage of SEED`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('AECDH') >= 0) >= 0 && isReportingEnabled('HasCipherAECDH', result)) {
-    addMessage(`Weak cipher usage of AECDH`, host, port)
+    addMessage(`Weak cipher usage of AECDH`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('MD5') >= 0) >= 0 && isReportingEnabled('HasCipherMD5', result)) {
-    addMessage(`Weak cipher usage of MD5`, host, port)
+    addMessage(`Weak cipher usage of MD5`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('SRP') >= 0) >= 0 && isReportingEnabled('HasCipherSRP', result)) {
-    addMessage(`Weak cipher usage of SRP`, host, port)
+    addMessage(`Weak cipher usage of SRP`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('DES') >= 0) >= 0 && isReportingEnabled('HasCipherDES', result)) {
-    addMessage(`Weak cipher usage of DES`, host, port)
+    addMessage(`Weak cipher usage of DES`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('3DES') >= 0) >= 0 && isReportingEnabled('HasCipherDES', result)) {
-    addMessage(`Weak cipher usage of 3DES`, host, port)
+    addMessage(`Weak cipher usage of 3DES`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('ARIA') >= 0) >= 0 && isReportingEnabled('HasCipherARIA', result)) {
-    addMessage(`Weak cipher usage of ARIA`, host, port)
+    addMessage(`Weak cipher usage of ARIA`, host, port, task)
   }
   if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0 && isReportingEnabled('HasCipherPSK', result)) {
-    addMessage(`Weak cipher usage of PSK`, host, port)
+    addMessage(`Weak cipher usage of PSK`, host, port, task)
   }
   if (ciphers.includes('AES128-SHA') && isReportingEnabled('AES128-SHA', result)) {
-    addMessage(`Weak cipher usage of AES128-SHA`, host, port, 'warn')
+    addMessage(`Weak cipher usage of AES128-SHA`, host, port, task, 'warn')
   }
   if (ciphers.includes('AES256-SHA') && isReportingEnabled('AES256-SHA', result)) {
-    addMessage(`Weak cipher usage of AES256-SHA`, host, port, 'warn')
+    addMessage(`Weak cipher usage of AES256-SHA`, host, port, task, 'warn')
   }
   if (ciphers.includes('AES128-SHA256') && isReportingEnabled('AES128-SHA256', result)) {
-    addMessage(`Weak cipher usage of AES128-SHA256`, host, port, 'warn')
+    addMessage(`Weak cipher usage of AES128-SHA256`, host, port, task, 'warn')
   }
   if (ciphers.includes('AES256-SHA256') && isReportingEnabled('AES256-SHA256', result)) {
-    addMessage(`Weak cipher usage of AES256-SHA256`, host, port, 'warn')
+    addMessage(`Weak cipher usage of AES256-SHA256`, host, port, task, 'warn')
   }
   if (ciphers.includes('AES256-GCM-SHA384') && isReportingEnabled('AES256-GCM-SHA384', result)) {
-    addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port, 'warn')
+    addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port, task, 'warn')
   }
   if (ciphers.includes('AES128-GCM-SHA256') && isReportingEnabled('AES128-GCM-SHA256', result)) {
-    addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port, 'warn')
+    addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port, task, 'warn')
   }
 }
 
 /**
  * @param {ServerResult} result
+ * @param {Task} task
  */
-function checkServerResult (result) {
+function checkServerResult (result, task) {
   const asciiHostname = result.host
   result.host = punycode.toUnicode(result.host)
   const thresholdDate = moment(result.cert.notAfter).subtract(config.validUntilDays, 'days')
@@ -246,21 +333,21 @@ function checkServerResult (result) {
   const daysDifference = Math.abs(moment(result.cert.notAfter).diff(moment(), 'days'))
 
   if (validUntilDaysVolaited && isReportingEnabled('Expire', result)) {
-    addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, result.host, result.port)
+    addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, result.host, result.port, task)
   }
 
   if (moment(result.cert.notBefore) > moment() && isReportingEnabled('NotYetValid', result)) {
-    addMessage(`Is not yet valid; notBefore ${result.cert.notBefore}`, result.host, result.port)
+    addMessage(`Is not yet valid; notBefore ${result.cert.notBefore}`, result.host, result.port, task)
   }
 
   if ((!result.cert.altNames || result.cert.altNames.length === 0) && isReportingEnabled('NoAltName', result)) {
-    addMessage(`Does not have any altName`, result.host, result.port)
+    addMessage(`Does not have any altName`, result.host, result.port, task)
   }
 
   if (result.cert.altNames.indexOf(asciiHostname) === -1) {
     const message = `Does not match ${result.host}. We got "${result.cert.altNames}"`
     if ((!result.cert.altNames.some(x => x.indexOf('*') >= 0)) && isReportingEnabled('CommonNameInvalid', result)) {
-      addMessage(message, result.host, result.port)
+      addMessage(message, result.host, result.port, task)
     } else {
       let matchesAnyWildcard = false
       if (result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
@@ -270,49 +357,49 @@ function checkServerResult (result) {
         }
       }
 
-      if (!matchesAnyWildcard && isReportingEnabled('CommonNameInvalid', result)) addMessage(message, result.host, result.port)
+      if (!matchesAnyWildcard && isReportingEnabled('CommonNameInvalid', result)) addMessage(message, result.host, result.port, task)
     }
   }
 
   if (result.cert.publicKey.bitSize < 4096 && isReportingEnabled('PubKeySize', result)) {
-    addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, 'warn')
+    addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, task, 'warn')
   }
 
   if (result.cert.signatureAlgorithm.startsWith('md') && isReportingEnabled('HasSomeMessageDigestAlgorithm', result)) {
-    addMessage(`Weak signature algorithm (md): ${result.cert.signatureAlgorithm}`, result.host, result.port)
+    addMessage(`Weak signature algorithm (md): ${result.cert.signatureAlgorithm}`, result.host, result.port, task)
   }
 
   if (result.cert.signatureAlgorithm.startsWith('sha1') && isReportingEnabled('SHA1', result)) {
-    addMessage(`Weak signature algorithm (sha1): ${result.cert.signatureAlgorithm}`, result.host, result.port)
+    addMessage(`Weak signature algorithm (sha1): ${result.cert.signatureAlgorithm}`, result.host, result.port, task)
   }
 
   if (result.ciphers.SSLv3_method && isReportingEnabled('SSLv3', result)) {
-    addMessage(`Weak / Outdated protocol supported: SSLv3`, result.host, result.port)
+    addMessage(`Weak / Outdated protocol supported: SSLv3`, result.host, result.port, task)
   }
 
   if (result.ciphers.SSLv2_method && isReportingEnabled('SSLv2', result)) {
-    addMessage(`Weak / Outdated protocol supported: SSLv2`, result.host, result.port)
+    addMessage(`Weak / Outdated protocol supported: SSLv2`, result.host, result.port, task)
   }
 
   if (!result.ciphers.TLSv1_2_method && isReportingEnabled('NoTLSv1.2', result)) {
-    addMessage(`Modern protocol NOT supported: TLS 1.2`, result.host, result.port)
+    addMessage(`Modern protocol NOT supported: TLS 1.2`, result.host, result.port, task)
   }
 
   if (!result.cert.extensions.cTPrecertificateSCTs && isReportingEnabled('NoCertificateTransparency', result)) {
-    addMessage(`No Certificate Transparency`, result.host, result.port, 'warn')
+    addMessage(`No Certificate Transparency`, result.host, result.port, task, 'warn')
   }
 
   if (result.certCa) {
     if (result.certCa.signatureAlgorithm.startsWith('md') && isReportingEnabled('HasSomeMessageDigestAlgorithmOnCA', result)) {
-      addMessage(`Weak signature algorithm of CA (md): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
+      addMessage(`Weak signature algorithm of CA (md): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port, task)
     }
 
     if (result.certCa.signatureAlgorithm.startsWith('sha1') && isReportingEnabled('SHA1OnCA', result)) {
-      addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port)
+      addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port, task)
     }
 
     if (result.certCa.publicKey.bitSize < 2048 && isReportingEnabled('PubKeySizeOnCA', result)) {
-      addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 2048 from CA ${result.certCa.subject.commonName}`, result.host, result.port)
+      addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 2048 from CA ${result.certCa.subject.commonName}`, result.host, result.port, task)
     }
   }
 
@@ -332,65 +419,161 @@ function checkServerResult (result) {
     ciphers[index] = ciphers[index].toUpperCase()
   }
 
-  checkWeakCipherUsage(ciphers, result, result.host, result.port)
+  checkWeakCipherUsage(ciphers, result, result.host, result.port, task)
 }
 
-async function run () {
-  for (const domain of config.domains) {
-    if (!domain.host) {
-      addMessage(`host not defined for ${domain}`, domain.host, domain.port)
-      continue
-    }
-    if (!domain.port) {
-      domain.port = config.defaultPort || 443
-    }
-
-    isFirstMessageOfItem = true
-    domain.host = punycode.toASCII(domain.host)
-
-    try {
-      const result = await sslinfo.getServerResults({
-        host: domain.host,
-        servername: domain.host,
-        port: domain.port,
-        timeOutMs: config.connectionTimeoutMs || 30000,
-        minDHSize: 1
-      })
-      result.ignoreReports = domain.ignore || []
-      checkServerResult(result)
-    } catch (e) {
-      let error = e
-      domain.host = punycode.toUnicode(domain.host)
-      if (error.error && error.error.code) error = error.error
-      switch (error.code) {
-        case 'ECONNRESET':
-          addMessage(`Connection reset`, domain.host, domain.port)
-          break
-        case 'ECONNREFUSED':
-          addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, domain.host, domain.port)
-          break
-        case 'ETIMEDOUT':
-          addMessage(`Connection timed-out`, domain.host, domain.port)
-          break
-        case 'ENOTFOUND':
-          addMessage(`Host can't be resolved / found -> ENOTFOUND`, domain.host, domain.port)
-          break
-        case 'EAI_AGAIN':
-          addMessage(`Host can't be resolved -> EAI_AGAIN`, domain.host, domain.port)
-          break
-        default:
-          addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, domain.host, domain.port)
-          break
-      }
-    }
-    isFirstOveralMessage = false
+/**
+ * @param {Task} task
+ */
+async function processDomain (task) {
+  if (!task.host) {
+    addMessage(`host not defined for ${task}`, task.host, task.port, task)
+    return
   }
+  if (!task.port) {
+    task.port = config.defaultPort || 443
+  }
+
+  isFirstMessageOfItem = true
+  task.host = punycode.toASCII(task.host)
+
+  try {
+    const result = await sslinfo.getServerResults({
+      host: task.host,
+      servername: task.host,
+      port: task.port,
+      timeOutMs: config.connectionTimeoutMs || 30000,
+      minDHSize: 1
+    })
+    result.ignoreReports = task.ignore || []
+    checkServerResult(result, task)
+  } catch (e) {
+    let error = e
+    task.host = punycode.toUnicode(task.host)
+    if (error.error && error.error.code) error = error.error
+    switch (error.code) {
+      case 'ECONNRESET':
+        addMessage(`Connection reset`, task.host, task.port, task)
+        break
+      case 'ECONNREFUSED':
+        addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, task.host, task.port, task)
+        break
+      case 'ETIMEDOUT':
+        addMessage(`Connection timed-out`, task.host, task.port, task)
+        break
+      case 'ENOTFOUND':
+        addMessage(`Host can't be resolved / found -> ENOTFOUND`, task.host, task.port, task)
+        break
+      case 'EAI_AGAIN':
+        addMessage(`Host can't be resolved -> EAI_AGAIN`, task.host, task.port, task)
+        break
+      default:
+        addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, task.host, task.port, task)
+        break
+    }
+  }
+  isFirstOveralMessage = false
+}
+
+async function runTasksFromConfig () {
+  // TODO: enqueue
+  for (const domain of config.domains) {
+    // @ts-ignore
+    await processDomain(domain)
+  }
+
+  // @ts-ignore
+  await sendReport(null)
+}
+
+/**
+ * @param {http.IncomingMessage} request
+ * @param {http.ServerResponse} response
+ */
+async function handleApiRequest (request, response) {
+  return new Promise(async (resolve, reject) => {
+    let { path } = url.parse(request.url)
+    path = path.toLocaleLowerCase()
+
+    if (path === '/api/enqueue') {
+      if (request.method !== 'POST') {
+        response.statusCode = 405
+        response.setHeader('content-type', 'application/json')
+        response.end(JSON.stringify({ message: 'Method not allowed' }))
+        return resolve()
+      }
+
+      let isImplemented = request.headers['content-type'] && request.headers['content-type'].toLocaleLowerCase().indexOf('json') >= 0
+
+      if (!isImplemented) {
+        response.statusCode = 501
+        response.setHeader('content-type', 'application/json')
+        response.end(JSON.stringify({ message: 'any other content-type than json is not implemented' }))
+        return resolve()
+      }
+
+      let hasError = false
+      let body = ''
+      request.on('data', postData => {
+        // reading http POST body
+        if (body.length + postData.length < 1e6) { // ~1 Megabytes
+          body += postData
+        } else {
+          response.statusCode = 413
+          response.setHeader('content-type', 'application/json')
+          response.end(JSON.stringify({ message: 'Payload lager than 1e6 (~ 1MB)' }))
+          hasError = true
+        }
+      })
+
+      request.on('end', async () => {
+        if (hasError) return resolve()
+
+        /** @type {Task} */
+        let task
+        try {
+          task = JSON.parse(body)
+        } catch (error) {
+          response.statusCode = 400
+          response.setHeader('content-type', 'application/json')
+          response.end(JSON.stringify({ message: 'payload could not be parsed into a valid object from json string' }))
+          return resolve()
+        }
+
+        if (!task.host || typeof task.host !== 'string' || task.host.trim().length < 3) {
+          response.statusCode = 400
+          response.setHeader('content-type', 'application/json')
+          response.end(JSON.stringify({ message: '"host" must be defined and a string of minimal 3 chars' }))
+          return resolve()
+        }
+
+        if ((!task.callback || typeof task.callback !== 'string' || task.callback.trim().length < 10) &&
+          (!task.webhook || typeof task.webhook !== 'string' || task.webhook.trim().length < 10)) {
+          response.statusCode = 400
+          response.setHeader('content-type', 'application/json')
+          response.end(JSON.stringify({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' }))
+          return resolve()
+        }
+
+        task.id = uuidv4()
+        response.statusCode = 200
+        response.setHeader('content-type', 'application/json')
+        response.end(JSON.stringify({ message: 'OK', id: task.id }))
+        // TODO: enqueuec
+        processDomain(task).then(async () => {
+          await sendReport(task)
+        })
+        return resolve()
+      })
+    }
+  })
 }
 
 (async () => {
   slack.setWebhook(config.slackWebHookUri)
   overrideOptionsFromCommandLineArguments()
-  await run()
-  await sendReport()
+  await runTasksFromConfig()
   if (config.enableConsoleLog) console.log('done')
 })()
+
+http.createServer(handleApiRequest).listen(16636)

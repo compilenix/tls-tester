@@ -29,11 +29,12 @@
     "q": "1.5.1",
     "slack-node": "0.1.8",
     "sslinfo": "0.2.0",
+    "uuid": "3.3.2",
     "x509": "0.3.3"
   },
   "devDependencies": {
     "eslint-config-standard": "11.0.0",
-    "eslint-plugin-import": "2.12.0",
+    "eslint-plugin-import": "2.13.0",
     "eslint-plugin-node": "6.0.1",
     "eslint-plugin-promise": "3.8.0",
     "eslint-plugin-standard": "3.1.0",

@@ -4,5 +4,19 @@
 interface ConfigDomain {
   host: string,
   port?: number,
-  ignore?: Warning[]
+  ignore?: string[]
+}
+
+interface Task extends ConfigDomain {
+  id: string,
+  webhook?: string,
+  callback?: string
+}
+
+interface TaskResult {
+  id: string,
+  host: string,
+  port: number,
+  items: string[]
+  error?: string
 }
