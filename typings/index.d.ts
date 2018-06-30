@@ -1,14 +1,18 @@
 /// <reference path="X509.d.ts" />
 /// <reference path="sslinfo.d.ts" />
 
-interface ConfigDomain {
+// interface ConfigDomain {
+//   host: string,
+//   port?: number,
+//   ignore?: string[]
+// }
+
+// interface Task extends ConfigDomain {
+  interface Task {
   host: string,
   port?: number,
   ignore?: string[]
-}
-
-interface Task extends ConfigDomain {
-  id: string,
+  id?: string,
   webhook?: string,
   callback?: string
 }

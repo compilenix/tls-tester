@@ -4,6 +4,7 @@ const http = require('http')
 const https = require('https')
 const url = require('url')
 const { URL: Url } = url
+const os = require('os')
 
 const sslinfo = require('./sslinfo')
 const fs = require('fs-extra')
@@ -24,6 +25,9 @@ let messagesToSend = []
 let taskResult = null
 let isFirstMessageOfItem = true
 let isFirstOveralMessage = true
+let taskRunning = false
+/** @type {Task[]} */
+let tasks = []
 
 function uniqueArray (arr) {
   return Array.from(new Set(arr))
@@ -188,8 +192,13 @@ async function sendReport (task) {
           break
       }
 
+      req.setTimeout(2500)
+      setTimeout(() => {
+        req.emit('close')
+      }, 2550)
       req.setHeader('content-type', 'application/json')
       req.end(JSON.stringify(taskResult, null, 4))
+      taskResult = null
       req.on('close', () => {
         resolve()
       })
@@ -475,15 +484,17 @@ async function processDomain (task) {
   isFirstOveralMessage = false
 }
 
-async function runTasksFromConfig () {
-  // TODO: enqueue
+function runTasksFromConfig () {
   for (const domain of config.domains) {
     // @ts-ignore
-    await processDomain(domain)
+    // await processDomain(domain)
+    domain.webhook = config.slackWebHookUri
+    // @ts-ignore
+    tasks.push(domain)
   }
 
   // @ts-ignore
-  await sendReport(null)
+  // await sendReport(null)
 }
 
 /**
@@ -559,10 +570,7 @@ async function handleApiRequest (request, response) {
         response.statusCode = 200
         response.setHeader('content-type', 'application/json')
         response.end(JSON.stringify({ message: 'OK', id: task.id }))
-        // TODO: enqueuec
-        processDomain(task).then(async () => {
-          await sendReport(task)
-        })
+        tasks.push(task)
         return resolve()
       })
     }
@@ -572,8 +580,26 @@ async function handleApiRequest (request, response) {
 (async () => {
   slack.setWebhook(config.slackWebHookUri)
   overrideOptionsFromCommandLineArguments()
-  await runTasksFromConfig()
-  if (config.enableConsoleLog) console.log('done')
-})()
+  runTasksFromConfig()
 
-http.createServer(handleApiRequest).listen(16636)
+  setInterval(async () => {
+    if (taskRunning) return
+    taskRunning = true
+    const task = tasks.shift()
+    if (!task) { taskRunning = false; return }
+    await processDomain(task)
+    await sendReport(task)
+    taskRunning = false
+  }, 100)
+
+  if (config.startHttpServer) {
+    http.createServer(handleApiRequest).listen(16636)
+    console.log(`http server started: http://${os.hostname()}:16636/`)
+    console.log(`# curl -v -H 'content-type: text/json' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:16636/api/enqueue`)
+  } else {
+    while (tasks.length > 0 || taskRunning) {
+      await sleep(200)
+    }
+    process.exit(0)
+  }
+})()

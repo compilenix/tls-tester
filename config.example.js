@@ -3,6 +3,7 @@
 class Config {
   constructor () {
     this.version = 1
+    this.startHttpServer = false
     this.validUntilDays = 10
     this.connectionTimeoutMs = 30000 // connection timeout per socket (there are possibly many connections per host)
     this.defaultPort = 443
@@ -53,7 +54,7 @@ class Config {
     // - HasCipherARIA
     // - HasCipherPSK
 
-    /** @type {ConfigDomain[]} */
+    /** @type {Task[]} */
     this.domains = [
       { host: 'www.microsoft.com', ignore: ['AES128-GCM-SHA256', 'AES256-GCM-SHA384', 'AES256-SHA256', 'AES128-SHA256', 'AES256-SHA', 'AES128-SHA'] },
       { host: 'expired.badssl.com', ignore: ['AES128-GCM-SHA256', 'AES256-GCM-SHA384', 'AES256-SHA256', 'AES128-SHA256', 'AES256-SHA', 'AES128-SHA'] },
