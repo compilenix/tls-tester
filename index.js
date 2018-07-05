@@ -6,7 +6,7 @@ const url = require('url')
 const { URL: Url } = url
 const os = require('os')
 
-const sslinfo = require('./sslinfo')
+const sslinfo = require('sslinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
@@ -450,42 +450,51 @@ async function processDomain (task) {
   isFirstMessageOfItem = true
   task.host = punycode.toASCII(task.host)
 
-  try {
-    const result = await sslinfo.getServerResults({
-      host: task.host,
-      servername: task.host,
-      port: task.port,
-      timeOutMs: config.connectionTimeoutMs || 30000,
-      minDHSize: 1
-    })
-    result.ignoreReports = task.ignore || []
-    checkServerResult(result, task)
-  } catch (e) {
-    let error = e
-    task.host = punycode.toUnicode(task.host)
-    if (error.error && error.error.code) error = error.error
-    switch (error.code) {
-      case 'ECONNRESET':
-        addMessage(`Connection reset`, task.host, task.port, task)
-        break
-      case 'ECONNREFUSED':
-        addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, task.host, task.port, task)
-        break
-      case 'ETIMEDOUT':
-        addMessage(`Connection timed-out`, task.host, task.port, task)
-        break
-      case 'ENOTFOUND':
-        addMessage(`Host can't be resolved / found -> ENOTFOUND`, task.host, task.port, task)
-        break
-      case 'EAI_AGAIN':
-        addMessage(`Host can't be resolved -> EAI_AGAIN`, task.host, task.port, task)
-        break
-      default:
-        addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, task.host, task.port, task)
-        break
+  return new Promise(async (resolve, reject) => {
+    let timeout = setTimeout(() => {
+      addMessage(`Connection timed-out`, task.host, task.port, task)
+      resolve()
+    }, (config.connectionTimeoutSeconds || 60) * 1000)
+
+    try {
+      const result = await sslinfo.getServerResults({
+        host: task.host,
+        servername: task.host,
+        port: task.port,
+        minDHSize: 1
+      })
+      result.ignoreReports = task.ignore || []
+      checkServerResult(result, task)
+    } catch (e) {
+      let error = e
+      task.host = punycode.toUnicode(task.host)
+      if (error.error && error.error.code) error = error.error
+      switch (error.code) {
+        case 'ECONNRESET':
+          addMessage(`Connection reset`, task.host, task.port, task)
+          break
+        case 'ECONNREFUSED':
+          addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, task.host, task.port, task)
+          break
+        case 'ETIMEDOUT':
+          addMessage(`Connection timed-out`, task.host, task.port, task)
+          break
+        case 'ENOTFOUND':
+          addMessage(`Host can't be resolved / found -> ENOTFOUND`, task.host, task.port, task)
+          break
+        case 'EAI_AGAIN':
+          addMessage(`Host can't be resolved -> EAI_AGAIN`, task.host, task.port, task)
+          break
+        default:
+          addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, task.host, task.port, task)
+          break
+      }
     }
-  }
-  isFirstOveralMessage = false
+
+    isFirstOveralMessage = false
+    clearTimeout(timeout)
+    resolve()
+  })
 }
 
 function runTasksFromConfig () {
