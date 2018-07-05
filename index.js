@@ -593,9 +593,9 @@ async function handleApiRequest (request, response) {
   }, 100)
 
   if (config.startHttpServer) {
-    http.createServer(handleApiRequest).listen(16636)
-    console.log(`http server started: http://${os.hostname()}:16636/`)
-    console.log(`# curl -v -H 'content-type: text/json' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:16636/api/enqueue`)
+    http.createServer(handleApiRequest).listen(config.httpServerPort)
+    console.log(`http server started: http://${os.hostname()}:${config.httpServerPort}/`)
+    console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:${config.httpServerPort}/api/enqueue`)
   } else {
     while (tasks.length > 0 || taskRunning) {
       await sleep(200)

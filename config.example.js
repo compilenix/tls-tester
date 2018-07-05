@@ -4,6 +4,7 @@ class Config {
   constructor () {
     this.version = 1
     this.startHttpServer = false
+    this.httpServerPort = 16636
     this.validUntilDays = 10
     this.connectionTimeoutMs = 30000 // connection timeout per socket (there are possibly many connections per host)
     this.defaultPort = 443
