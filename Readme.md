@@ -22,7 +22,68 @@ node index.js --enableSlack false --domains www.microsoft.com,expired.badssl.com
 * `npm start`
 * `curl -v -H 'content-type: application/json; charset=utf8' --data '{ "host": "mozilla-old.badssl.com", "callback":"http://callbackUrl" }' http://localhost:16636/api/enqueue`
 
-# What it can test / cover
+### Add a task to the queue
+A request path MUST be `/api/enqueue` \
+A request method MUST be `POST` \
+A request MUST have at least this properties:
+```json
+{
+  "host": "fqdn"
+}
+```
+And at least one of `"callback": "https://callbackUrl"` OR `"webhook": "https://webhookUrl"`.
+
+Here is a example request object defining all supported properties:
+```json
+{
+  "host": "mozilla-old.badssl.com",
+  "port": 443,
+  "callback": "https://example.local/tls-test-result",
+  "webhook": "https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx",
+  "ignore": ["AES128-GCM-SHA256", "AES256-GCM-SHA384", "AES256-SHA256", "AES128-SHA256", "AES256-SHA", "AES128-SHA"]
+}
+```
+
+Following is a example response:
+```text
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf8
+Date: Thu, 04 Jul 2018 14:06:35 GMT
+Connection: close
+Content-Length: 60
+
+{"message":"OK","id":"dcc9d880-5277-435d-981a-5ff6a5df6442"}
+```
+
+### Task completion handling
+`callback` and `webhook` will be invoked on task completion.
+
+`webhook` is compatible with services like: [Slack Incoming Webhooks](https://api.slack.com/incoming-webhooks) and [Mattermost Incoming Webhooks](https://docs.mattermost.com/developer/webhooks-incoming.html)
+
+`callback` is a simple http/s callback. Here is a callback request example:
+```text
+POST /tls-test-result HTTP/1.1
+Host: example.local
+content-type: application/json; charset=utf8
+Connection: close
+Content-Length: 565
+
+{
+    "host": "mozilla-old.badssl.com",
+    "port": 443,
+    "id": "dcc9d880-5277-435d-981a-5ff6a5df6442",
+    "items": [
+        "Public key size of 2048 is < 4096",
+        "Weak cipher usage of CAMELLIA",
+        "Weak cipher usage of SEED",
+        "Weak cipher usage of DES"
+    ]
+}
+```
+
+When a error occures, the `callback` or `webhook` might not be invoked / completed.
+
+# What it can test
 * basic connectivity (connection timeout, conn-reset, conn-refused, ...)
 * certificate is about to expire or is expired
 * certificate is not yet valid
@@ -43,7 +104,7 @@ node index.js --enableSlack false --domains www.microsoft.com,expired.badssl.com
   * Trpple DES (3DES)
   * ... for the complete List search for "checkWeakCipherUsage" in this repo
 
-# What it won't test / cover for you
+# What it won't test for you
 * certificates in chain not send by the server
 * Extended Validation
 * OCSP Must Staple
