@@ -20,7 +20,7 @@ node index.js --enableSlack false --domains www.microsoft.com,expired.badssl.com
 
 ## Use as a Service
 * `npm start`
-* `curl -v -H 'content-type: text/json' --data '{ "host": "mozilla-old.badssl.com", "callback":"http://callbackUrl" }' http://localhost:16636/api/enqueue`
+* `curl -v -H 'content-type: application/json; charset=utf8' --data '{ "host": "mozilla-old.badssl.com", "callback":"http://callbackUrl" }' http://localhost:16636/api/enqueue`
 
 # What it can test / cover
 * basic connectivity (connection timeout, conn-reset, conn-refused, ...)
