@@ -157,60 +157,62 @@ async function sendReportWebook (uri) {
 /**
  * @param {Task} task
  */
-async function sendReport (task) {
-  if (!config.enableSlack && !task.callback && !task.webhook) return
-
-  if (task && task.callback) {
-    const callback = new Url(task.callback)
-    let requestOptions = {
-      timeout: 2500,
-      protocol: callback.protocol,
-      href: callback.href,
-      method: 'POST',
-      host: callback.host,
-      port: callback.port,
-      hostname: callback.hostname,
-      pathname: callback.pathname,
-      path: `${callback.pathname}${callback.search}`,
-      search: callback.search,
-      hash: callback.hash
-    }
-
-    /** @type {http.ClientRequest} */
-    let req
-    await new Promise((resolve, reject) => {
-      switch (callback.protocol.toLowerCase()) {
-        case 'http:':
-          req = http.request(requestOptions, res => {
-            // ignore
-          })
-          break
-        case 'https:':
-          req = https.request(requestOptions, res => {
-            // ignore
-          })
-          break
-        default:
-          break
-      }
-
-      req.setTimeout(2500)
-      setTimeout(() => {
-        req.emit('close')
-      }, 2550)
-      req.setHeader('content-type', 'application/json')
-      req.end(JSON.stringify(taskResult, null, 4))
-      taskResult = null
-      req.on('close', () => {
-        resolve()
-      })
-      req.on('error', (e) => {
-        resolve()
-      })
-    })
+async function sendReportCallback (task) {
+  const callback = new Url(task.callback)
+  let requestOptions = {
+    timeout: 2500,
+    protocol: callback.protocol,
+    href: callback.href,
+    method: 'POST',
+    host: callback.host,
+    port: callback.port,
+    hostname: callback.hostname,
+    pathname: callback.pathname,
+    path: `${callback.pathname}${callback.search}`,
+    search: callback.search,
+    hash: callback.hash
   }
 
-  if (config.enableSlack || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : null)
+  /** @type {http.ClientRequest} */
+  let req
+  return new Promise((resolve, reject) => {
+    switch (callback.protocol.toLowerCase()) {
+      case 'http:':
+        req = http.request(requestOptions, res => {
+          // ignore
+        })
+        break
+      case 'https:':
+        req = https.request(requestOptions, res => {
+          // ignore
+        })
+        break
+      default:
+        break
+    }
+
+    req.setTimeout(2500)
+    setTimeout(() => {
+      req.emit('close')
+    }, 2550)
+    const resultText = JSON.stringify(taskResult, null, 4)
+    req.setHeader('content-type', 'application/json; charset=utf8')
+    req.end(resultText, 'utf8')
+    req.on('close', () => {
+      resolve()
+    })
+    req.on('error', (e) => {
+      resolve()
+    })
+  })
+}
+
+/**
+ * @param {Task} task
+ */
+async function sendReport (task) {
+  if (task && task.callback) await sendReportCallback(task)
+  if ((config.enableSlack && config.slackWebHookUri) || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : null)
 }
 
 /**
@@ -245,7 +247,7 @@ function addMessage (message, host, port, task, level = 'error') {
     }
   }
 
-  if (!config.enableSlack) {
+  if (!config.enableSlack && !task.webhook) {
     return
   }
 
