@@ -596,6 +596,11 @@ async function handleApiRequest (request, response) {
         console.dir(task)
         return resolve()
       })
+    } else {
+      const message = JSON.stringify({ message: 'not found' })
+      response.statusCode = 404
+      response.setHeader('content-type', 'application/json; charset=utf8')
+      response.end(message, 'utf8')
     }
   })
 }
