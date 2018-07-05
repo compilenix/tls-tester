@@ -613,7 +613,7 @@ async function handleApiRequest (request, response) {
     await sendReport(task)
     messagesToSend = []
     taskResult = null
-    console.log(`${tasks.length} number of tasks remaining`)
+    console.log(`${tasks.length} tasks remaining`)
     taskRunning = false
   }, 100)
 
