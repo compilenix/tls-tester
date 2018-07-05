@@ -28,6 +28,8 @@ let isFirstOveralMessage = true
 let taskRunning = false
 /** @type {Task[]} */
 let tasks = []
+/** @type {Task[]} */
+let tasksToEnqueue = []
 
 function uniqueArray (arr) {
   return Array.from(new Set(arr))
@@ -490,7 +492,7 @@ function runTasksFromConfig () {
     // await processDomain(domain)
     domain.webhook = config.slackWebHookUri
     // @ts-ignore
-    tasks.push(domain)
+    tasksToEnqueue.push(domain)
   }
 
   // @ts-ignore
@@ -580,15 +582,23 @@ async function handleApiRequest (request, response) {
 (async () => {
   slack.setWebhook(config.slackWebHookUri)
   overrideOptionsFromCommandLineArguments()
-  runTasksFromConfig()
+  // runTasksFromConfig()
 
   setInterval(async () => {
     if (taskRunning) return
     taskRunning = true
     const task = tasks.shift()
+    for (const t of tasksToEnqueue) {
+      tasks.push(t)
+    }
+    tasksToEnqueue = []
     if (!task) { taskRunning = false; return }
+    messagesToSend = []
+    taskResult = null
     await processDomain(task)
     await sendReport(task)
+    messagesToSend = []
+    taskResult = null
     taskRunning = false
   }, 100)
 
