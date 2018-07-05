@@ -497,19 +497,6 @@ async function processDomain (task) {
   })
 }
 
-function runTasksFromConfig () {
-  for (const domain of config.domains) {
-    // @ts-ignore
-    // await processDomain(domain)
-    domain.webhook = config.slackWebHookUri
-    // @ts-ignore
-    tasksToEnqueue.push(domain)
-  }
-
-  // @ts-ignore
-  // await sendReport(null)
-}
-
 /**
  * @param {http.IncomingMessage} request
  * @param {http.ServerResponse} response
@@ -608,7 +595,6 @@ async function handleApiRequest (request, response) {
 (async () => {
   slack.setWebhook(config.slackWebHookUri)
   overrideOptionsFromCommandLineArguments()
-  // runTasksFromConfig()
 
   setInterval(async () => {
     if (taskRunning) return
