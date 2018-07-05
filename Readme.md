@@ -23,8 +23,8 @@ node index.js --enableSlack false --domains www.microsoft.com,expired.badssl.com
 * `curl -v -H 'content-type: application/json; charset=utf8' --data '{ "host": "mozilla-old.badssl.com", "callback":"http://callbackUrl" }' http://localhost:16636/api/enqueue`
 
 ### Add a task to the queue
-A request path MUST be `/api/enqueue` \
-A request method MUST be `POST` \
+A request path MUST be `/api/enqueue`<br/>
+A request method MUST be `POST`<br/>
 A request MUST have at least this properties:
 ```json
 {
