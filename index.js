@@ -521,31 +521,35 @@ async function handleApiRequest (request, response) {
 
     if (path === '/api/enqueue') {
       if (request.method !== 'POST') {
+        const message = JSON.stringify({ message: 'Method not allowed' })
         response.statusCode = 405
-        response.setHeader('content-type', 'application/json')
-        response.end(JSON.stringify({ message: 'Method not allowed' }))
+        response.setHeader('content-type', 'application/json; charset=utf8')
+        response.end(message, 'utf8')
         return resolve()
       }
 
       let isImplemented = request.headers['content-type'] && request.headers['content-type'].toLocaleLowerCase().indexOf('json') >= 0
 
       if (!isImplemented) {
+        const message = JSON.stringify({ message: 'any other content-type than json is not implemented' })
         response.statusCode = 501
-        response.setHeader('content-type', 'application/json')
-        response.end(JSON.stringify({ message: 'any other content-type than json is not implemented' }))
+        response.setHeader('content-type', 'application/json; charset=utf8')
+        response.end(message, 'utf8')
         return resolve()
       }
 
+      request.setEncoding('utf8')
       let hasError = false
       let body = ''
       request.on('data', postData => {
         // reading http POST body
-        if (body.length + postData.length < 1e6) { // ~1 Megabytes
+        if (body.length + postData.length < 10e6) { // ~10 Megabytes
           body += postData
         } else {
+          const message = JSON.stringify({ message: 'Payload lager than 10e6 (~ 10MB)' })
           response.statusCode = 413
-          response.setHeader('content-type', 'application/json')
-          response.end(JSON.stringify({ message: 'Payload lager than 1e6 (~ 1MB)' }))
+          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.end(message, 'utf8')
           hasError = true
         }
       })
@@ -558,32 +562,38 @@ async function handleApiRequest (request, response) {
         try {
           task = JSON.parse(body)
         } catch (error) {
+          const message = JSON.stringify({ message: 'payload could not be parsed into a valid object from json string' })
           response.statusCode = 400
-          response.setHeader('content-type', 'application/json')
-          response.end(JSON.stringify({ message: 'payload could not be parsed into a valid object from json string' }))
+          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.end(message, 'utf8')
           return resolve()
         }
 
         if (!task.host || typeof task.host !== 'string' || task.host.trim().length < 3) {
+          const message = JSON.stringify({ message: '"host" must be defined and a string of minimal 3 chars' })
           response.statusCode = 400
-          response.setHeader('content-type', 'application/json')
-          response.end(JSON.stringify({ message: '"host" must be defined and a string of minimal 3 chars' }))
+          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.end(message, 'utf8')
           return resolve()
         }
 
         if ((!task.callback || typeof task.callback !== 'string' || task.callback.trim().length < 10) &&
           (!task.webhook || typeof task.webhook !== 'string' || task.webhook.trim().length < 10)) {
+          const message = JSON.stringify({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' })
           response.statusCode = 400
-          response.setHeader('content-type', 'application/json')
-          response.end(JSON.stringify({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' }))
+          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.end(message, 'utf8')
           return resolve()
         }
 
         task.id = uuidv4()
+        const message = JSON.stringify({ message: 'OK', id: task.id })
         response.statusCode = 200
-        response.setHeader('content-type', 'application/json')
-        response.end(JSON.stringify({ message: 'OK', id: task.id }))
+        response.setHeader('content-type', 'application/json; charset=utf8')
+        response.end(message, 'utf8')
         tasks.push(task)
+        console.log('got new task')
+        console.dir(task)
         return resolve()
       })
     }
@@ -604,12 +614,15 @@ async function handleApiRequest (request, response) {
     }
     tasksToEnqueue = []
     if (!task) { taskRunning = false; return }
+    console.log('running task:')
+    console.dir(task)
     messagesToSend = []
     taskResult = null
     await processDomain(task)
     await sendReport(task)
     messagesToSend = []
     taskResult = null
+    console.log(`${tasks.length} number of tasks remaining`)
     taskRunning = false
   }, 100)
 
