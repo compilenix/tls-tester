@@ -6,7 +6,7 @@ class Config {
     this.startHttpServer = false
     this.httpServerPort = 16636
     this.validUntilDays = 10
-    this.connectionTimeoutMs = 30000 // connection timeout per socket (there are possibly many connections per host)
+    this.connectionTimeoutSeconds = 60 // connection timeout task / domain (has to be greater than 0)
     this.defaultPort = 443
     this.ignore = [] // this warnings / errors will be ignored on all domains
 
