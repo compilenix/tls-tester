@@ -198,7 +198,7 @@ async function sendReportCallback (task) {
     }, 2550)
     const resultText = JSON.stringify(taskResult, null, 4)
     req.setHeader('content-type', contentTypeJson)
-    req.end(resultText, 'utf8')
+    req.end(`${resultText}\n`, 'utf8')
     req.on('close', () => {
       resolve()
     })
@@ -512,7 +512,7 @@ async function handleApiRequest (request, response) {
         const message = JSON.stringify({ message: 'Method not allowed' })
         response.statusCode = 405
         response.setHeader('content-type', contentTypeJson)
-        response.end(message, 'utf8')
+        response.end(`${message}\n`, 'utf8')
         return resolve()
       }
 
@@ -522,7 +522,7 @@ async function handleApiRequest (request, response) {
         const message = JSON.stringify({ message: 'any other content-type than json is not implemented' })
         response.statusCode = 501
         response.setHeader('content-type', contentTypeJson)
-        response.end(message, 'utf8')
+        response.end(`${message}\n`, 'utf8')
         return resolve()
       }
 
@@ -537,7 +537,7 @@ async function handleApiRequest (request, response) {
           const message = JSON.stringify({ message: 'Payload lager than 10e6 (~ 10MB)' })
           response.statusCode = 413
           response.setHeader('content-type', contentTypeJson)
-          response.end(message, 'utf8')
+          response.end(`${message}\n`, 'utf8')
           hasError = true
         }
       })
@@ -553,7 +553,7 @@ async function handleApiRequest (request, response) {
           const message = JSON.stringify({ message: 'payload could not be parsed into a valid object from json string' })
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
-          response.end(message, 'utf8')
+          response.end(`${message}\n`, 'utf8')
           return resolve()
         }
 
@@ -561,7 +561,7 @@ async function handleApiRequest (request, response) {
           const message = JSON.stringify({ message: '"host" must be defined and a string of minimal 3 chars' })
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
-          response.end(message, 'utf8')
+          response.end(`${message}\n`, 'utf8')
           return resolve()
         }
 
@@ -570,7 +570,7 @@ async function handleApiRequest (request, response) {
           const message = JSON.stringify({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' })
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
-          response.end(message, 'utf8')
+          response.end(`${message}\n`, 'utf8')
           return resolve()
         }
 
@@ -578,7 +578,7 @@ async function handleApiRequest (request, response) {
         const message = JSON.stringify({ message: 'OK', id: task.id })
         response.statusCode = 200
         response.setHeader('content-type', contentTypeJson)
-        response.end(message, 'utf8')
+        response.end(`${message}\n`, 'utf8')
         tasks.push(task)
         const clientAddress = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'] : request.connection.remoteAddress
         const logCallbackUrl = task.callback ? ` with callback ${task.callback}` : ''
@@ -590,7 +590,7 @@ async function handleApiRequest (request, response) {
       const message = JSON.stringify({ message: 'not found' })
       response.statusCode = 404
       response.setHeader('content-type', contentTypeJson)
-      response.end(message, 'utf8')
+      response.end(`${message}\n`, 'utf8')
     }
   })
 }
