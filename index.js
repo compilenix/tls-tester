@@ -578,8 +578,7 @@ async function handleApiRequest (request, response) {
         response.setHeader('content-type', 'application/json; charset=utf8')
         response.end(message, 'utf8')
         tasks.push(task)
-        console.log('got new task')
-        console.dir(task)
+        if (config.enableConsoleLog) console.log(`got new task for: ${task.host}`)
         return resolve()
       })
     } else {
@@ -604,21 +603,21 @@ async function handleApiRequest (request, response) {
     }
     tasksToEnqueue = []
     if (!task) { taskRunning = false; return }
-    if (config.startHttpServer) console.log(`running task for ${task.host}`)
+    if (config.startHttpServer || config.enableConsoleLog) console.log(`running task for ${task.host}`)
     messagesToSend = []
     taskResult = null
     await processDomain(task)
     await sendReport(task)
     messagesToSend = []
     taskResult = null
-    console.log(`number of tasks remaining: ${tasks.length}`)
+    if (config.enableConsoleLog) console.log(`number of tasks remaining: ${tasks.length}`)
     taskRunning = false
   }, 100)
 
   if (config.startHttpServer) {
     http.createServer(handleApiRequest).listen(config.httpServerPort)
     console.log(`http server started: http://${os.hostname()}:${config.httpServerPort}/`)
-    console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:${config.httpServerPort}/api/enqueue`)
+    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:${config.httpServerPort}/api/enqueue`)
   } else if (config.enableConsoleLog || (config.enableSlack && config.slackWebHookUri)) {
     for (const task of config.domains) {
       if (config.enableSlack && config.slackWebHookUri && !task.webhook) task.webhook = config.slackWebHookUri
