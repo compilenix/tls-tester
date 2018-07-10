@@ -604,15 +604,14 @@ async function handleApiRequest (request, response) {
     }
     tasksToEnqueue = []
     if (!task) { taskRunning = false; return }
-    console.log('running task:')
-    console.dir(task)
+    if (config.startHttpServer) console.log(`running task for ${task.host}`)
     messagesToSend = []
     taskResult = null
     await processDomain(task)
     await sendReport(task)
     messagesToSend = []
     taskResult = null
-    console.log(`${tasks.length} tasks remaining`)
+    console.log(`number of tasks remaining: ${tasks.length}`)
     taskRunning = false
   }, 100)
 
