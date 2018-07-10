@@ -108,9 +108,8 @@ function isReportingEnabled (warning, result = undefined) {
  * @param {string} uri
  */
 async function sendReportWebook (uri) {
-  if (uri) {
-    slack.setWebhook(uri)
-  }
+  if (!uri) return
+  slack.setWebhook(uri)
 
   let payloads = []
   let attachments = []
@@ -212,7 +211,7 @@ async function sendReportCallback (task) {
  */
 async function sendReport (task) {
   if (task && task.callback) await sendReportCallback(task)
-  if ((config.enableSlack && config.slackWebHookUri) || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : null)
+  if ((config.enableSlack && config.slackWebHookUri) || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : config.slackWebHookUri)
 }
 
 /**
