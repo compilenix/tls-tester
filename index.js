@@ -31,6 +31,7 @@ let taskRunning = false
 let tasks = []
 /** @type {Task[]} */
 let tasksToEnqueue = []
+const contentTypeJson = 'application/json; charset=utf8'
 
 function uniqueArray (arr) {
   return Array.from(new Set(arr))
@@ -196,7 +197,7 @@ async function sendReportCallback (task) {
       req.emit('close')
     }, 2550)
     const resultText = JSON.stringify(taskResult, null, 4)
-    req.setHeader('content-type', 'application/json; charset=utf8')
+    req.setHeader('content-type', contentTypeJson)
     req.end(resultText, 'utf8')
     req.on('close', () => {
       resolve()
@@ -510,7 +511,7 @@ async function handleApiRequest (request, response) {
       if (request.method !== 'POST') {
         const message = JSON.stringify({ message: 'Method not allowed' })
         response.statusCode = 405
-        response.setHeader('content-type', 'application/json; charset=utf8')
+        response.setHeader('content-type', contentTypeJson)
         response.end(message, 'utf8')
         return resolve()
       }
@@ -520,7 +521,7 @@ async function handleApiRequest (request, response) {
       if (!isImplemented) {
         const message = JSON.stringify({ message: 'any other content-type than json is not implemented' })
         response.statusCode = 501
-        response.setHeader('content-type', 'application/json; charset=utf8')
+        response.setHeader('content-type', contentTypeJson)
         response.end(message, 'utf8')
         return resolve()
       }
@@ -535,7 +536,7 @@ async function handleApiRequest (request, response) {
         } else {
           const message = JSON.stringify({ message: 'Payload lager than 10e6 (~ 10MB)' })
           response.statusCode = 413
-          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.setHeader('content-type', contentTypeJson)
           response.end(message, 'utf8')
           hasError = true
         }
@@ -551,7 +552,7 @@ async function handleApiRequest (request, response) {
         } catch (error) {
           const message = JSON.stringify({ message: 'payload could not be parsed into a valid object from json string' })
           response.statusCode = 400
-          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.setHeader('content-type', contentTypeJson)
           response.end(message, 'utf8')
           return resolve()
         }
@@ -559,7 +560,7 @@ async function handleApiRequest (request, response) {
         if (!task.host || typeof task.host !== 'string' || task.host.trim().length < 3) {
           const message = JSON.stringify({ message: '"host" must be defined and a string of minimal 3 chars' })
           response.statusCode = 400
-          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.setHeader('content-type', contentTypeJson)
           response.end(message, 'utf8')
           return resolve()
         }
@@ -568,7 +569,7 @@ async function handleApiRequest (request, response) {
           (!task.webhook || typeof task.webhook !== 'string' || task.webhook.trim().length < 10)) {
           const message = JSON.stringify({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' })
           response.statusCode = 400
-          response.setHeader('content-type', 'application/json; charset=utf8')
+          response.setHeader('content-type', contentTypeJson)
           response.end(message, 'utf8')
           return resolve()
         }
@@ -576,7 +577,7 @@ async function handleApiRequest (request, response) {
         task.id = uuidv4()
         const message = JSON.stringify({ message: 'OK', id: task.id })
         response.statusCode = 200
-        response.setHeader('content-type', 'application/json; charset=utf8')
+        response.setHeader('content-type', contentTypeJson)
         response.end(message, 'utf8')
         tasks.push(task)
         const clientAddress = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'] : request.connection.remoteAddress
@@ -588,7 +589,7 @@ async function handleApiRequest (request, response) {
     } else {
       const message = JSON.stringify({ message: 'not found' })
       response.statusCode = 404
-      response.setHeader('content-type', 'application/json; charset=utf8')
+      response.setHeader('content-type', contentTypeJson)
       response.end(message, 'utf8')
     }
   })
@@ -624,7 +625,7 @@ async function handleApiRequest (request, response) {
     if (os.platform() === 'linux') fqdn = execSync('hostname -f').toLocaleString().trim()
     fqdn = fqdn.length > 0 ? fqdn : os.hostname()
     console.log(`http server started: http://${fqdn}:${config.httpServerPort}/`)
-    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${fqdn}:${config.httpServerPort}/api/enqueue`)
+    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: ${contentTypeJson}' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${fqdn}:${config.httpServerPort}/api/enqueue`)
   } else if (config.enableConsoleLog || (config.enableSlack && config.slackWebHookUri)) {
     for (const task of config.domains) {
       if (config.enableSlack && config.slackWebHookUri && !task.webhook) task.webhook = config.slackWebHookUri
