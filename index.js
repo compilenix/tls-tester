@@ -619,9 +619,14 @@ async function handleApiRequest (request, response) {
     http.createServer(handleApiRequest).listen(config.httpServerPort)
     console.log(`http server started: http://${os.hostname()}:${config.httpServerPort}/`)
     console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:${config.httpServerPort}/api/enqueue`)
-  } else {
-    while (tasks.length > 0 || taskRunning) {
-      await sleep(200)
+  } else if (config.enableConsoleLog || (config.enableSlack && config.slackWebHookUri)) {
+    for (const task of config.domains) {
+      if (config.enableSlack && config.slackWebHookUri && !task.webhook) task.webhook = config.slackWebHookUri
+      tasksToEnqueue.push(task)
+    }
+
+    while (tasks.length > 0 || taskRunning || tasksToEnqueue.length > 0) {
+      await sleep(10)
     }
     process.exit(0)
   }
