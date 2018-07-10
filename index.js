@@ -5,6 +5,7 @@ const https = require('https')
 const url = require('url')
 const { URL: Url } = url
 const os = require('os')
+const { execSync } = require('child_process')
 
 const sslinfo = require('sslinfo')
 const fs = require('fs-extra')
@@ -578,7 +579,10 @@ async function handleApiRequest (request, response) {
         response.setHeader('content-type', 'application/json; charset=utf8')
         response.end(message, 'utf8')
         tasks.push(task)
-        if (config.enableConsoleLog) console.log(`got new task for: ${task.host}`)
+        const clientAddress = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'] : request.connection.remoteAddress
+        const logCallbackUrl = task.callback ? ` with callback ${task.callback}` : ''
+        const logWebookUrl = task.webhook ? ` with webook ${task.webhook}` : ''
+        if (config.enableConsoleLog) console.log(`got new task for: ${task.host} from ${clientAddress}${logCallbackUrl}${logWebookUrl}`)
         return resolve()
       })
     } else {
@@ -616,8 +620,11 @@ async function handleApiRequest (request, response) {
 
   if (config.startHttpServer) {
     http.createServer(handleApiRequest).listen(config.httpServerPort)
-    console.log(`http server started: http://${os.hostname()}:${config.httpServerPort}/`)
-    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${os.hostname()}:${config.httpServerPort}/api/enqueue`)
+    let fqdn = ''
+    if (os.platform() === 'linux') fqdn = execSync('hostname -f').toLocaleString().trim()
+    fqdn = fqdn.length > 0 ? fqdn : os.hostname()
+    console.log(`http server started: http://${fqdn}:${config.httpServerPort}/`)
+    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: text/json; charset=utf8' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${fqdn}:${config.httpServerPort}/api/enqueue`)
   } else if (config.enableConsoleLog || (config.enableSlack && config.slackWebHookUri)) {
     for (const task of config.domains) {
       if (config.enableSlack && config.slackWebHookUri && !task.webhook) task.webhook = config.slackWebHookUri
