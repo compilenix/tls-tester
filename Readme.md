@@ -13,6 +13,7 @@ node index.js --enableSlack false --domains www.microsoft.com,expired.badssl.com
 
 # Usage
 * install nvm (https://github.com/creationix/nvm)
+* install c/c++ build tools `apt install build-essentials make`
 * `cp config.example.js config.js`
 * edit config.js
 * run `npm start`
