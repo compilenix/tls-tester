@@ -625,7 +625,7 @@ async function handleApiRequest (request, response) {
       tasksToEnqueue.push(task)
     }
 
-    while (tasks.length > 0 || taskRunning || tasksToEnqueue.length > 0) {
+    while (tasks.length > 0 || tasksToEnqueue.length > 0) {
       await sleep(10)
     }
     process.exit(0)
