@@ -7,7 +7,7 @@ const { URL: Url } = url
 const os = require('os')
 const { execSync } = require('child_process')
 
-const sslinfo = require('sslinfo')
+const sslinfo = require('./sslinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
@@ -161,7 +161,7 @@ async function sendReportWebook (uri) {
 async function sendReportCallback (task) {
   const callback = new Url(task.callback)
   let requestOptions = {
-    timeout: 2500,
+    timeout: (config.connectionTimeoutSeconds || 60) * 1000,
     protocol: callback.protocol,
     href: callback.href,
     method: 'POST',
@@ -192,10 +192,10 @@ async function sendReportCallback (task) {
         break
     }
 
-    req.setTimeout(2500)
+    req.setTimeout((config.connectionTimeoutSeconds || 60) * 1000)
     setTimeout(() => {
       req.emit('close')
-    }, 2550)
+    }, (config.connectionTimeoutSeconds || 60) * 1000 + 100)
     const resultText = JSON.stringify(taskResult, null, 4)
     req.setHeader('content-type', contentTypeJson)
     req.end(`${resultText}\n`, 'utf8')
@@ -462,7 +462,8 @@ async function processDomain (task) {
         host: task.host,
         servername: task.host,
         port: task.port,
-        minDHSize: 1
+        minDHSize: 1,
+        timeOutMs: (config.connectionTimeoutSeconds || 60) * 1000
       })
       result.ignoreReports = task.ignore || []
       checkServerResult(result, task)
