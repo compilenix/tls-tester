@@ -6,6 +6,15 @@
   "configurations": [{
       "type": "node",
       "request": "launch",
+      "name": "Launch tlsinfo",
+      "program": "${workspaceFolder}/tlsinfo/index.js",
+      "runtimeExecutable": "${workspaceRoot}/node.sh",
+      // "args": [
+      //   "--slackWebHookUri"
+      // ]
+    }, {
+      "type": "node",
+      "request": "launch",
       "name": "Launch Ingest",
       "program": "${workspaceFolder}/ingest.js",
       "runtimeExecutable": "${workspaceRoot}/node.sh",

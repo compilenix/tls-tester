@@ -1,3 +1,5 @@
+/// <reference path="../index.d.ts"/>
+
 const tls = require('tls')
 const x509 = require('x509')
 const EventEmitter = require('events')
@@ -6,7 +8,7 @@ const { Certificate, CertificateResult } = require('./Certificate')
 
 class ServiceAuditResult {
   constructor () {
-    /** @type {CertificateResult} */
+    /** @type {tlsinfo.CertificateResult} */
     this.certificate = null
   }
 }

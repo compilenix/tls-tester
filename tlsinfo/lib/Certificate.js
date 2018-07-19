@@ -1,3 +1,5 @@
+/// <reference path="../index.d.ts"/>
+
 const tls = require('tls')
 const x509 = require('x509')
 const EventEmitter = require('events')
@@ -6,12 +8,12 @@ class CertificateResult {
   constructor () {
     this.host = ''
     this.port = 0
-    this.cert = { } // X509
-    this.certPEM = ''
-    this.certCa = { } // ?X509
+    /** @type {x509.X509} */
+    this.cert = null
+    this.certPem = ''
+    /** @type {x509.X509} */
+    this.certCa = null
     this.certCaPem = ''
-    this.protocols = { } // TlsProtocol[]
-    this.ciphers = { } // Cipher
   }
 }
 
@@ -19,17 +21,20 @@ class Certificate extends EventEmitter {
   /**
    * @param {tls.ConnectionOptions} options
    */
-  constructor (options = null) {
+  constructor (options) {
     super()
+    if (!options.host) throw new Error('host must be defined')
+
     /** @type {tls.TLSSocket} */
     this.socket = null
-    this.options = options
+    this.setOptions(options)
     this.timeout = 30000
-    this.on('timeout', () => setImmediate(() => this.onTimeout()))
+    this.on('timeout', () => this.onTimeout())
   }
 
   destroySocket (error = null) {
     if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
+    this.socket = null
   }
 
   /**
@@ -37,6 +42,17 @@ class Certificate extends EventEmitter {
    */
   onTimeout () {
     this.destroySocket('timeout')
+  }
+
+  /**
+   * @param {(reason?: any) => void} reject
+   * @param {any} error
+   * @param {NodeJS.Timer} timer
+   */
+  onError (error, timer = null, reject = null) {
+    if (timer) clearTimeout(timer)
+    this.destroySocket('error')
+    if (reject) reject(error)
   }
 
   /**
@@ -48,14 +64,37 @@ class Certificate extends EventEmitter {
   }
 
   /**
-   * @static
-   * @param {string} certRaw
+   * @param {tls.ConnectionOptions} options
    */
-  parsePemCertificate (certRaw) {
-    return x509.parseCert(`-----BEGIN CERTIFICATE-----\n${certRaw}\n-----END CERTIFICATE-----`)
+  setOptions (options) {
+    this.options = options
+
+    if (!this.options.servername) this.options.servername = this.options.host
+    if (!this.options.port) this.options.port = 443
+    if (!this.options.minDHSize) this.options.minDHSize = 1
+    if (this.options.rejectUnauthorized === undefined) this.options.rejectUnauthorized = false
   }
 
   /**
+   * @static
+   * @param {string} certRaw in pem format without: -----BEGIN CERTIFICATE-----
+   * @returns {x509.X509} X509 certificate
+   */
+  parseRawPemCertificate (certRaw) {
+    return this.parsePemCertificate(`-----BEGIN CERTIFICATE-----\n${certRaw}\n-----END CERTIFICATE-----`)
+  }
+
+  /**
+   * @static
+   * @param {string} cert in pem format with: -----BEGIN CERTIFICATE-----
+   * @returns {x509.X509} X509 certificate
+   */
+  parsePemCertificate (cert) {
+    return x509.parseCert(cert)
+  }
+
+  /**
+   * @param {number} timeout
    * @returns {Promise<CertificateResult>}
    */
   async get (timeout = -1) {
@@ -65,40 +104,27 @@ class Certificate extends EventEmitter {
       timeoutTimer = setTimeout(() => this.emit('timeout'), this.timeout)
     }
 
-    /**
-     * @param {(reason?: any) => void} reject
-     * @param {any} error
-     * @param {NodeJS.Timer} timer
-     */
-    function onError (reject, error, timer) {
-      clearTimeout(timer)
-      setImmediate(() => this.destroySocket('error'))
-      reject(error)
-    }
-
     return new Promise((resolve, reject) => {
-      /** @type {CertificateResult} */
-      let result = new CertificateResult()
-
       this.socket = tls.connect(this.options, () => {
+        let result = new CertificateResult()
         result.host = this.options.host
         result.port = this.options.port
 
         try {
-          // TODO:
-          result.certPEM = this.socket.getPeerCertificate().raw.toString('base64')
+          result.certPem = this.socket.getPeerCertificate().raw.toString('base64')
           if (this.socket.getPeerCertificate(true).issuerCertificate) result.certCaPem = this.socket.getPeerCertificate(true).issuerCertificate.raw.toString('base64')
-          result.cert = this.parsePemCertificate(result.certPEM)
-          if (result.certCaPem) result.certCa = this.parsePemCertificate(result.certCaPem)
+          result.cert = this.parseRawPemCertificate(result.certPem)
+          if (result.certCaPem) result.certCa = this.parseRawPemCertificate(result.certCaPem)
         } catch (error) {
-          return onError(reject, error, timeoutTimer)
+          return this.onError(error, timeoutTimer, reject)
         }
 
         clearTimeout(timeoutTimer)
+        this.destroySocket()
         resolve(result)
       })
 
-      this.socket.on('error', error => onError(reject, error, timeoutTimer))
+      this.socket.on('error', error => this.onError(error, timeoutTimer, reject))
 
       this.socket.setKeepAlive(false)
       this.socket.setNoDelay(true)
@@ -112,4 +138,3 @@ class Certificate extends EventEmitter {
 }
 
 module.exports.Certificate = Certificate
-module.exports.CertificateResult = CertificateResult
