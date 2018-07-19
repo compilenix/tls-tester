@@ -8,15 +8,15 @@
     "noImplicitThis": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
-    "baseUrl": "./types",
+    "baseUrl": "./",
     "typeRoots": [
-      "./types"
+      "./"
     ],
     "types": [],
     "noEmit": true,
     "forceConsistentCasingInFileNames": true
   },
   "files": [
-    "types/index.d.ts"
+    "./index.d.ts"
   ]
 }

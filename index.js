@@ -1,4 +1,4 @@
-/// <reference path="typings/index.d.ts"/>
+'use-strict'
 
 const http = require('http')
 const https = require('https')
@@ -7,7 +7,7 @@ const { URL: Url } = url
 const os = require('os')
 const { execSync } = require('child_process')
 
-const sslinfo = require('./sslinfo')
+const tlsinfo = require('./tlsinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
@@ -17,6 +17,29 @@ const uuidv4 = require('uuid/v4')
 
 if (!fs.existsSync('./config.js')) {
   fs.copySync('./config.example.js', './config.js')
+}
+
+class Task {
+  constructor () {
+    this.host = ''
+    this.port = 443
+    /** @type {string[]} */
+    this.ignore = []
+    this.id = ''
+    this.webhook = ''
+    this.callback = ''
+  }
+}
+
+class TaskResult {
+  constructor () {
+    this.id = ''
+    this.host = ''
+    this.port = 443
+    /** @type {string[]} */
+    this.items = []
+    this.error = ''
+  }
 }
 
 let config = require('./config.js')
@@ -97,7 +120,7 @@ function overrideOptionsFromCommandLineArguments () {
 
 /**
  * @param {string} warning
- * @param {ServerResult} result
+ * @param {tlsinfo.ServiceAuditResult} result
  */
 function isReportingEnabled (warning, result = undefined) {
   const containsReportingPredicate = /** @param {string} x */ x => x === warning
@@ -458,7 +481,7 @@ async function processDomain (task) {
     }, (config.connectionTimeoutSeconds || 60) * 1000)
 
     try {
-      const result = await sslinfo.getServerResults({
+      const result = await tlsinfo.getServerResults({
         host: task.host,
         servername: task.host,
         port: task.port,

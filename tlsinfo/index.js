@@ -8,7 +8,13 @@ const { Certificate } = require('./lib/Certificate')
 //       host: 'google.com',
 //       port: 465
 //     })
-//     const certResult = await cert.get(2500)
+//     let certResult = null
+//     try { certResult = await cert.get(2500) } catch (error) { }
+//     debugger
+//     cert.setOptions({
+//       host: 'heise.de'
+//     })
+//     try { certResult = await cert.get() } catch (error) { }
 //     debugger
 //   } catch (error) {
 //     debugger
