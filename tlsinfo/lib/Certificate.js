@@ -1,4 +1,3 @@
-/// <reference path="../types/index.d.ts"/>
 const tls = require('tls')
 const x509 = require('x509')
 const EventEmitter = require('events')

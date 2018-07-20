@@ -32,6 +32,9 @@
     "q": "1.5.1",
     "slack-node": "0.1.8",
     "sslinfo": "0.2.0",
+    "tlsinfo": "file:tlsinfo",
+    "@types/tlsinfo": "file:local-types/tlsinfo",
+    "@types/x509": "file:local-types/x509",
     "uuid": "3.3.2",
     "x509": "0.3.3"
   },

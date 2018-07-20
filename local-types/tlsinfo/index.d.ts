@@ -3,9 +3,9 @@
 // Definitions by: My Self <https://github.com/me>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 /// <reference types="node"/>
-import { X509, TlsProtocol, Cipher } from 'x509'
 
 declare module 'tlsinfo' {
+  import { X509, TlsProtocol, Cipher } from 'x509'
   export interface CertificateResult {
     host: string
     port: number

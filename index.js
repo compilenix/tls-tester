@@ -1,3 +1,4 @@
+// /// <reference path="./index.d.ts"/>
 'use-strict'
 
 const http = require('http')
@@ -7,7 +8,7 @@ const { URL: Url } = url
 const os = require('os')
 const { execSync } = require('child_process')
 
-const tlsinfo = require('./tlsinfo')
+const tlsinfo = require('tlsinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')

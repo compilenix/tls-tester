@@ -5,7 +5,6 @@
 // export as namespace x509
 
 declare module 'x509' {
-
   export const version: string
 
   /**
