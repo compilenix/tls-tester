@@ -22,7 +22,7 @@
     "url": "https://git.compilenix.org/Compilenix/tls-tester"
   },
   "dependencies": {
-    "@types/node": "^10.5.2",
+    "@types/node": "^9",
     "fs-extra": "6.0.1",
     "lodash": "4.17.10",
     "minimist": "1.2.0",
