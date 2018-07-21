@@ -21,13 +21,13 @@ class Certificate extends EventEmitter {
   /**
    * @param {tls.ConnectionOptions} options
    */
-  constructor (options) {
+  constructor (options = null) {
     super()
-    if (!options.host) throw new Error('host must be defined')
-
     /** @type {tls.TLSSocket} */
     this.socket = null
-    this.setOptions(options)
+    /** @type {tls.ConnectionOptions} */
+    this.options = null
+    if (options) this.setOptions(options)
     this.timeout = 30000
     this.on('timeout', () => this.onTimeout())
   }
@@ -67,12 +67,19 @@ class Certificate extends EventEmitter {
    * @param {tls.ConnectionOptions} options
    */
   setOptions (options) {
-    this.options = options
+    if (!options || !options.host) throw new Error('host must be defined')
 
-    if (!this.options.servername) this.options.servername = this.options.host
+    this.options = Object.assign(this.options || { }, options)
+
+    if (!options.servername) this.options.servername = this.options.host
     if (!this.options.port) this.options.port = 443
     if (!this.options.minDHSize) this.options.minDHSize = 1
     if (this.options.rejectUnauthorized === undefined) this.options.rejectUnauthorized = false
+  }
+
+  resetOptions (options = null) {
+    this.options = null
+    if (options) this.setOptions(options)
   }
 
   /**

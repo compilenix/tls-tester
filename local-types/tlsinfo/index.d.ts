@@ -30,15 +30,20 @@ declare module 'tlsinfo' {
   }
 
   export class Certificate extends NodeJS.EventEmitter {
+    constructor()
     constructor(options: ConnectionOptions)
     destroySocket(): void
     destroySocket(error: any): void
     private onTimeout(): void
-    onError(error: any): void
-    onError(error: any, timer: NodeJS.Timer): void
-    onError(error: any, timer: NodeJS.Timer, reject: (reason?: any) => void): void
+    private onError(error: any): void
+    private onError(error: any, timer: NodeJS.Timer): void
+    private onError(error: any, timer: NodeJS.Timer, reject: (reason?: any) => void): void
     setTimeout(ms: number): void
+    on(event: 'timeout', listener: (...args: any[]) => void): this
+    emit(event: 'timeout', ...args: any[]): boolean
     setOptions(options: ConnectionOptions): void
+    resetOptions(): void
+    resetOptions(options: ConnectionOptions): void
     /**
      * @param certRaw in pem format without: -----BEGIN CERTIFICATE-----
      */
