@@ -107,9 +107,6 @@ class Certificate extends EventEmitter {
   async get (timeout = -1) {
     this.setTimeout(timeout)
     let timeoutTimer
-    if (this.timeout !== Infinity && this.timeout > 0) {
-      timeoutTimer = setTimeout(() => this.emit('timeout'), this.timeout)
-    }
 
     return new Promise((resolve, reject) => {
       this.options.host = punycode.toASCII(this.options.host)
@@ -128,7 +125,6 @@ class Certificate extends EventEmitter {
           return this.onError(error, timeoutTimer, reject)
         }
 
-        clearTimeout(timeoutTimer)
         this.destroySocket()
         resolve(result)
       })
@@ -140,7 +136,6 @@ class Certificate extends EventEmitter {
       this.socket.setKeepAlive(false)
       this.socket.setNoDelay(true)
       this.socket.setTimeout(this.timeout, () => {
-        clearTimeout(timeoutTimer)
         this.emit('timeout')
         reject(new Error('timeout'))
       })
