@@ -29,7 +29,7 @@ class Certificate extends TlsSocketWrapper {
    * @param {string} certRaw in pem format without: -----BEGIN CERTIFICATE-----
    * @returns {x509.X509} X509 certificate
    */
-  parseRawPemCertificate (certRaw) {
+  static parseRawPemCertificate (certRaw) {
     return this.parsePemCertificate(`-----BEGIN CERTIFICATE-----\n${certRaw}\n-----END CERTIFICATE-----`)
   }
 
@@ -38,7 +38,7 @@ class Certificate extends TlsSocketWrapper {
    * @param {string} cert in pem format with: -----BEGIN CERTIFICATE-----
    * @returns {x509.X509} X509 certificate
    */
-  parsePemCertificate (cert) {
+  static parsePemCertificate (cert) {
     return x509.parseCert(cert)
   }
 
@@ -59,8 +59,8 @@ class Certificate extends TlsSocketWrapper {
         const peerCertificate = this.socket.getPeerCertificate(true)
         result.certPem = peerCertificate.raw.toString('base64')
         if (peerCertificate.issuerCertificate) result.certCaPem = peerCertificate.issuerCertificate.raw.toString('base64')
-        result.cert = this.parseRawPemCertificate(result.certPem)
-        if (result.certCaPem) result.certCa = this.parseRawPemCertificate(result.certCaPem)
+        result.cert = Certificate.parseRawPemCertificate(result.certPem)
+        if (result.certCaPem) result.certCa = Certificate.parseRawPemCertificate(result.certCaPem)
       } catch (error) {
         return this.onError(error, reject)
       }
