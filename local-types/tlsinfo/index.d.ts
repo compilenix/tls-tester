@@ -37,6 +37,9 @@ declare module 'tlsinfo' {
     private onTimeout(): void
     private onError(error: any): void
     private onError(error: any, reject: (reason?: any) => void): void
+    /**
+     * default 30000ms -> 30s
+     */
     setTimeout(ms: number): void
     on(event: 'timeout', listener: (...args: any[]) => void): this
     emit(event: 'timeout', ...args: any[]): boolean
@@ -51,8 +54,8 @@ declare module 'tlsinfo' {
      * @param cert in pem format with: -----BEGIN CERTIFICATE-----
      */
     static parsePemCertificate(cert: string): X509
-    get(): Promise<CertificateResult>
-    get(timeout: number): Promise<CertificateResult>
+    fetch(): Promise<CertificateResult>
+    fetch(timeout: number): Promise<CertificateResult>
   }
 
   export class ServiceAudit extends NodeJS.EventEmitter {

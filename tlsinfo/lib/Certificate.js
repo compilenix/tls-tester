@@ -102,7 +102,7 @@ class Certificate extends EventEmitter {
    * @param {number} timeout
    * @returns {Promise<CertificateResult>}
    */
-  async get (timeout = -1) {
+  async fetch (timeout = -1) {
     this.setTimeout(timeout)
 
     return new Promise((resolve, reject) => {
