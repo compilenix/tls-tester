@@ -1,8 +1,7 @@
 const tls = require('tls')
 const x509 = require('x509')
-const EventEmitter = require('events')
 
-const punycode = require('../node_modules/punycode')
+const TlsSocketWrapper = require('./TlsSocketWrapper')
 
 class CertificateResult {
   constructor () {
@@ -17,67 +16,12 @@ class CertificateResult {
   }
 }
 
-class Certificate extends EventEmitter {
+class Certificate extends TlsSocketWrapper {
   /**
    * @param {tls.ConnectionOptions} options
    */
   constructor (options = null) {
-    super()
-    /** @type {tls.TLSSocket} */
-    this.socket = null
-    /** @type {tls.ConnectionOptions} */
-    this.options = null
-    if (options) this.setOptions(options)
-    this.timeout = 30000
-    this.on('timeout', () => this.onTimeout())
-  }
-
-  destroySocket (error = null) {
-    if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
-    this.socket = null
-  }
-
-  /**
-   * @private
-   */
-  onTimeout () {
-    this.destroySocket('timeout')
-  }
-
-  /**
-   * @param {(reason?: any) => void} reject
-   * @param {any} error
-   */
-  onError (error, reject = null) {
-    this.destroySocket('error')
-    if (reject) reject(error)
-  }
-
-  /**
-   * set timeout in ms
-   * @param {number} ms
-   */
-  setTimeout (ms) {
-    if (typeof ms === 'number' && ms > 0) this.timeout = ms
-  }
-
-  /**
-   * @param {tls.ConnectionOptions} options
-   */
-  setOptions (options) {
-    if (!options || !options.host) throw new Error('host must be defined')
-
-    this.options = Object.assign(this.options || { }, options)
-
-    if (!options.servername) this.options.servername = this.options.host
-    if (!this.options.port) this.options.port = 443
-    if (!this.options.minDHSize) this.options.minDHSize = 1
-    if (this.options.rejectUnauthorized === undefined) this.options.rejectUnauthorized = false
-  }
-
-  resetOptions (options = null) {
-    this.options = null
-    if (options) this.setOptions(options)
+    super(options)
   }
 
   /**
@@ -103,41 +47,29 @@ class Certificate extends EventEmitter {
    * @returns {Promise<CertificateResult>}
    */
   async fetch (timeout = -1) {
-    this.setTimeout(timeout)
+    return new Promise(async (resolve, reject) => {
+      const result = new CertificateResult()
 
-    return new Promise((resolve, reject) => {
-      this.options.host = punycode.toASCII(this.options.host)
-      this.options.servername = punycode.toASCII(this.options.servername)
-      this.socket = tls.connect(this.options, () => {
-        let result = new CertificateResult()
+      try {
+        this.socket = await this.connect(timeout)
+
         result.host = this.options.host
         result.port = this.options.port
 
-        try {
-          result.certPem = this.socket.getPeerCertificate().raw.toString('base64')
-          if (this.socket.getPeerCertificate(true).issuerCertificate) result.certCaPem = this.socket.getPeerCertificate(true).issuerCertificate.raw.toString('base64')
-          result.cert = this.parseRawPemCertificate(result.certPem)
-          if (result.certCaPem) result.certCa = this.parseRawPemCertificate(result.certCaPem)
-        } catch (error) {
-          return this.onError(error, reject)
-        }
+        const peerCertificate = this.socket.getPeerCertificate(true)
+        result.certPem = peerCertificate.raw.toString('base64')
+        if (peerCertificate.issuerCertificate) result.certCaPem = peerCertificate.issuerCertificate.raw.toString('base64')
+        result.cert = this.parseRawPemCertificate(result.certPem)
+        if (result.certCaPem) result.certCa = this.parseRawPemCertificate(result.certCaPem)
+      } catch (error) {
+        return this.onError(error, reject)
+      }
 
-        this.destroySocket()
-        resolve(result)
-      })
-      this.options.host = punycode.toUnicode(this.options.host)
-      this.options.servername = punycode.toUnicode(this.options.servername)
-
-      this.socket.on('error', error => this.onError(error, reject))
-
-      this.socket.setKeepAlive(false)
-      this.socket.setNoDelay(true)
-      this.socket.setTimeout(this.timeout, () => {
-        this.emit('timeout')
-        reject(new Error('timeout'))
-      })
+      this.destroySocket()
+      resolve(result)
     })
   }
 }
 
 module.exports.Certificate = Certificate
+module.exports.CertificateResult = CertificateResult

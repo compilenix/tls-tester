@@ -6,7 +6,7 @@
 
 declare module 'tlsinfo' {
   import { X509, TlsProtocol, Cipher } from 'x509'
-  import { ConnectionOptions } from 'tls'
+  import { ConnectionOptions, TLSSocket } from 'tls'
 
   export interface CertificateResult {
     host: string
@@ -29,7 +29,11 @@ declare module 'tlsinfo' {
     ignoreReports?: string[]
   }
 
-  export class Certificate extends NodeJS.EventEmitter {
+  export class TlsSocketWrapper extends NodeJS.EventEmitter {
+    /**
+     * Default: 30000 -> 30s
+     */
+    readonly timeout: number
     constructor()
     constructor(options: ConnectionOptions)
     destroySocket(): void
@@ -46,6 +50,14 @@ declare module 'tlsinfo' {
     setOptions(options: ConnectionOptions): void
     resetOptions(): void
     resetOptions(options: ConnectionOptions): void
+    setNoDelay(noDelay?: boolean): this;
+    setKeepAlive(enable?: boolean, initialDelay?: number): this;
+    connect(): Promise<TLSSocket>
+    connect(timeout: number): Promise<TLSSocket>
+  }
+  export class Certificate extends TlsSocketWrapper {
+    constructor()
+    constructor(options: ConnectionOptions)
     /**
      * @param certRaw in pem format without: -----BEGIN CERTIFICATE-----
      */
@@ -58,7 +70,9 @@ declare module 'tlsinfo' {
     fetch(timeout: number): Promise<CertificateResult>
   }
 
-  export class ServiceAudit extends NodeJS.EventEmitter {
+  export class ProtocolVersion extends TlsSocketWrapper {
 
+  }
+  export class ServiceAudit extends TlsSocketWrapper {
   }
 }
