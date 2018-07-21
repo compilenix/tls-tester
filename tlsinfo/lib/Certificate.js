@@ -2,6 +2,8 @@ const tls = require('tls')
 const x509 = require('x509')
 const EventEmitter = require('events')
 
+const punycode = require('../node_modules/punycode')
+
 class CertificateResult {
   constructor () {
     this.host = ''
@@ -103,6 +105,8 @@ class Certificate extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
+      this.options.host = punycode.toASCII(this.options.host)
+      this.options.servername = punycode.toASCII(this.options.servername)
       this.socket = tls.connect(this.options, () => {
         let result = new CertificateResult()
         result.host = this.options.host
@@ -121,6 +125,8 @@ class Certificate extends EventEmitter {
         this.destroySocket()
         resolve(result)
       })
+      this.options.host = punycode.toUnicode(this.options.host)
+      this.options.servername = punycode.toUnicode(this.options.servername)
 
       this.socket.on('error', error => this.onError(error, timeoutTimer, reject))
 
