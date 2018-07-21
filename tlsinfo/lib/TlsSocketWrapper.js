@@ -1,9 +1,9 @@
 const tls = require('tls')
-const events = require('events')
+const TimeOutableSocket = require('./TimeOutableSocket')
 
 const punycode = require('../node_modules/punycode')
 
-class TlsSocketWrapper extends events.EventEmitter {
+class TlsSocketWrapper extends TimeOutableSocket {
   /**
    * @param {tls.ConnectionOptions} options
    */
@@ -16,11 +16,6 @@ class TlsSocketWrapper extends events.EventEmitter {
     if (options) this.setOptions(options)
     this.timeout = 30000
     this.on('timeout', () => this.onTimeout())
-  }
-
-  destroySocket (error = null) {
-    if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
-    this.socket = null
   }
 
   /**
@@ -86,9 +81,9 @@ class TlsSocketWrapper extends events.EventEmitter {
     return new Promise((resolve, reject) => {
       this.options.host = punycode.toASCII(this.options.host)
       this.options.servername = punycode.toASCII(this.options.servername)
-      this.socket = tls.connect(this.options, () => {
+      this.setSocket(tls.connect(this.options, () => {
         resolve(this.socket)
-      })
+      }))
       this.options.host = punycode.toUnicode(this.options.host)
       this.options.servername = punycode.toUnicode(this.options.servername)
 
@@ -96,8 +91,8 @@ class TlsSocketWrapper extends events.EventEmitter {
 
       this.setKeepAlive(false)
       this.setNoDelay(true)
-      this.socket.setTimeout(this.timeout, () => {
-        this.emit('timeout')
+      this.setTimeout(this.timeout)
+      this.on('timeout', () => {
         reject(new Error('timeout'))
       })
     })
