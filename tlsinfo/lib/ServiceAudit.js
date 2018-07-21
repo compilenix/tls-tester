@@ -1,52 +1,31 @@
 const tls = require('tls')
 const x509 = require('x509')
-const EventEmitter = require('events')
 
 const { Certificate, CertificateResult } = require('./Certificate')
 
 class ServiceAuditResult {
   constructor () {
-    /** @type {tlsinfo.CertificateResult} */
+    /** @type {CertificateResult} */
     this.certificate = null
   }
 }
 
-class ServiceAudit extends EventEmitter {
+class ServiceAudit {
   /**
    * @param {tls.ConnectionOptions} options
    */
   constructor (options = null) {
-    super()
-    /** @type {tls.TLSSocket} */
-    this.socket = null
-    this.options = options
-    this.timeout = 30000
-    this.on('timeout', () => setImmediate(() => this.onTimeout()))
+    this.setTimeout(this.timeout * 10) // if Certificate.timeout has 30 seconds this will be at 5 minutes
   }
 
-  destroySocket (error = null) {
-    if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
-  }
+  async run (timeout = -1, timeoutPerConnection = -1) {
+    this.setTimeout(timeout)
+    this.setTimeoutPerConnection(timeoutPerConnection)
 
-  /**
-   * @private
-   */
-  onTimeout () {
-    this.destroySocket('timeout')
-  }
-
-  /**
-   * set timeout in ms
-   * @param {number} ms
-   */
-  setTimeout (ms) {
-    if (typeof ms === 'number' && ms > 0) this.timeout = ms
-  }
-
-  async run () {
-    let result = new ServiceAuditResult()
-    let cert = new Certificate(this.options)
-    result.certificate = await cert.get(this.timeout)
+    return new Promise(async (resolve, reject) => {
+      const result = new ServiceAuditResult()
+      result.certificate = await this.fetch(this.timeoutPerConnection)
+    })
   }
 }
 
