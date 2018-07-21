@@ -47,10 +47,8 @@ class Certificate extends EventEmitter {
   /**
    * @param {(reason?: any) => void} reject
    * @param {any} error
-   * @param {NodeJS.Timer} timer
    */
-  onError (error, timer = null, reject = null) {
-    if (timer) clearTimeout(timer)
+  onError (error, reject = null) {
     this.destroySocket('error')
     if (reject) reject(error)
   }
@@ -106,7 +104,6 @@ class Certificate extends EventEmitter {
    */
   async get (timeout = -1) {
     this.setTimeout(timeout)
-    let timeoutTimer
 
     return new Promise((resolve, reject) => {
       this.options.host = punycode.toASCII(this.options.host)
@@ -122,7 +119,7 @@ class Certificate extends EventEmitter {
           result.cert = this.parseRawPemCertificate(result.certPem)
           if (result.certCaPem) result.certCa = this.parseRawPemCertificate(result.certCaPem)
         } catch (error) {
-          return this.onError(error, timeoutTimer, reject)
+          return this.onError(error, reject)
         }
 
         this.destroySocket()
@@ -131,7 +128,7 @@ class Certificate extends EventEmitter {
       this.options.host = punycode.toUnicode(this.options.host)
       this.options.servername = punycode.toUnicode(this.options.servername)
 
-      this.socket.on('error', error => this.onError(error, timeoutTimer, reject))
+      this.socket.on('error', error => this.onError(error, reject))
 
       this.socket.setKeepAlive(false)
       this.socket.setNoDelay(true)

@@ -36,8 +36,7 @@ declare module 'tlsinfo' {
     destroySocket(error: any): void
     private onTimeout(): void
     private onError(error: any): void
-    private onError(error: any, timer: NodeJS.Timer): void
-    private onError(error: any, timer: NodeJS.Timer, reject: (reason?: any) => void): void
+    private onError(error: any, reject: (reason?: any) => void): void
     setTimeout(ms: number): void
     on(event: 'timeout', listener: (...args: any[]) => void): this
     emit(event: 'timeout', ...args: any[]): boolean
