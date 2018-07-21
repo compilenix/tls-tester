@@ -1,4 +1,3 @@
-// /// <reference path="./index.d.ts"/>
 'use-strict'
 
 const http = require('http')

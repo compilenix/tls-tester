@@ -6,6 +6,8 @@
 
 declare module 'tlsinfo' {
   import { X509, TlsProtocol, Cipher } from 'x509'
+  import { ConnectionOptions } from 'tls'
+
   export interface CertificateResult {
     host: string
     port: number
@@ -28,7 +30,25 @@ declare module 'tlsinfo' {
   }
 
   export class Certificate extends NodeJS.EventEmitter {
-
+    constructor(options: ConnectionOptions)
+    destroySocket(): void
+    destroySocket(error: any): void
+    private onTimeout(): void
+    onError(error: any): void
+    onError(error: any, timer: NodeJS.Timer): void
+    onError(error: any, timer: NodeJS.Timer, reject: (reason?: any) => void): void
+    setTimeout(ms: number): void
+    setOptions(options: ConnectionOptions): void
+    /**
+     * @param certRaw in pem format without: -----BEGIN CERTIFICATE-----
+     */
+    static parseRawPemCertificate(certRaw: string): X509
+    /**
+     * @param cert in pem format with: -----BEGIN CERTIFICATE-----
+     */
+    static parsePemCertificate(cert: string): X509
+    get(): Promise<CertificateResult>
+    get(timeout: number): Promise<CertificateResult>
   }
 
   export class ServiceAudit extends NodeJS.EventEmitter {
