@@ -118,24 +118,20 @@ class ProtocolVersion extends TlsSocketWrapper {
         await this.connect(timeout)
         resolve(true)
       } catch (error) {
-        if (error.toString().indexOf('no ciphers available') !== -1) {
-          return resolve(false)
+        /** @type {string} */
+        const errorString = error.toString()
+        const knownAndOkErrors = [
+          'no ciphers available',
+          'wrong version number',
+          'methods disabled',
+          'unsupported protocol',
+          'socket hang up',
+          'ECONNRESET'
+        ]
+        for (const knownError of knownAndOkErrors) {
+          if (errorString.match(knownError)) return resolve(false)
         }
-        if (error.toString().indexOf('wrong version number') !== -1) {
-          return resolve(false)
-        }
-        if (error.toString().indexOf('methods disabled') !== -1) {
-          return resolve(false)
-        }
-        if (error.toString().indexOf('unsupported protocol') !== -1) {
-          return resolve(false)
-        }
-        if (error.toString().indexOf('socket hang up') !== -1) {
-          return resolve(false)
-        }
-        if (error.toString().indexOf('ECONNRESET') !== -1) {
-          return resolve(false)
-        }
+
         reject(error)
       } finally {
         this.destroySocket()
