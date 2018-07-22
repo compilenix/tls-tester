@@ -8,6 +8,7 @@ declare module 'tlsinfo' {
   import { X509, TlsProtocol, Cipher } from 'x509'
   import { ConnectionOptions, TLSSocket } from 'tls'
   import { Socket } from 'net'
+  import { LookupAddress } from 'dns'
 
   export class TimeOutableSocket extends NodeJS.EventEmitter {
     /**
@@ -34,13 +35,12 @@ declare module 'tlsinfo' {
 
     constructor()
     constructor(options: ConnectionOptions)
-    private onTimeout(): void
     private onError(error: any): void
     private onError(error: any, reject: (reason?: any) => void): void
     /**
      * default 30000ms -> 30s
      */
-    setOptions(options: ConnectionOptions): void
+    updateOptions(options: ConnectionOptions): void
     resetOptions(): void
     resetOptions(options: ConnectionOptions): void
     setNoDelay(noDelay?: boolean): this;
@@ -121,33 +121,51 @@ declare module 'tlsinfo' {
 
     constructor()
     constructor(options: ConnectionOptions)
-    /**
-     * Similar to setTimeout but does apply to each individual connection rather then to the whole service audit.
-     *
-     * Default: equal to setTimeout
-     */
-    setTimeoutPerConnection(ms: number): void
     test(): Promise<ProtocolVersionResult>
     test(timeout: number): Promise<ProtocolVersionResult>
     test(timeoutPerConnection: number): Promise<ProtocolVersionResult>
   }
 
+  export interface HostAddressResult {
+    host: string
+    address: string
+    family: number
+  }
+
+  export class DnsHelper {
+    static lookup(host: string): Promise<{ addresses: HostAddressResult[], warnings: string[] }>
+  }
+
+  export interface HostAddressSpecificProtocolVersionResult {
+    address: HostAddressResult
+    protocol: string
+    state: boolean
+  }
+
   export interface ProtocolVersionResult {
+    host: string,
+    port: number,
+    ipAddress: HostAddressResult[]
+    protocol: string
     /**
      * Protocols that are supported by the current Node.JS version and accepted by the Service
      * @see {ProtocolVersion.protocols}
      */
-    enabled: string[]
+    enabled: HostAddressSpecificProtocolVersionResult[]
     /**
      * Protocols that are supported by the current Node.JS version but NOT accepted by the Service
      * @see {ProtocolVersion.protocols}
      */
-    disabled: string[]
+    disabled: HostAddressSpecificProtocolVersionResult[]
     /**
      * Protocols that are NOT supported by the current Node.JS version
      * @see {ProtocolVersion.protocols}
      */
-    unsupported: string[]
+    unsupported: HostAddressSpecificProtocolVersionResult[]
+    /**
+     * Warnings; I.e. host has multiple ip addresses
+     */
+    warnings: string[]
   }
 
   export class ProtocolVersion extends TlsSocketWrapper {
@@ -179,10 +197,40 @@ declare module 'tlsinfo' {
       'TLSv1_2',
       'TLSv1_3'
     ]
-    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): Promise<boolean>
-    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number): Promise<boolean>
-    testMultiple(protocols: string[]): Promise<ProtocolVersionResult>
-    testMultiple(protocols: string[], timeout: number): Promise<ProtocolVersionResult>
+    /**
+     * @param protocol I.e.: TLSv1_2
+     */
+    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): Promise<ProtocolVersionResult>
+    /**
+     * @param protocol I.e.: TLSv1_2
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @see {ProtocolVersion.setTimeout}
+     */
+    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number): Promise<ProtocolVersionResult>
+    /**
+     * @param protocol I.e.: TLSv1_2
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @see {ProtocolVersion.setTimeout}
+     * @param ipVersions default is [4, 6]
+     */
+    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<ProtocolVersionResult>
+    /**
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]
+     */
+    testMultiple(protocols: string[]): Promise<ProtocolVersionResult[]>
+    /**
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @see {ProtocolVersion.setTimeout}
+     */
+    testMultiple(protocols: string[], timeout: number): Promise<ProtocolVersionResult[]>
+    /**
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @param ipVersions default is [4, 6]
+     * @see {ProtocolVersion.setTimeout}
+     */
+    testMultiple(protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<ProtocolVersionResult[]>
   }
 
   export interface ServiceAuditResult {
@@ -192,12 +240,6 @@ declare module 'tlsinfo' {
   export class ServiceAudit extends TimeOutableSocket {
     constructor()
     constructor(options: ConnectionOptions)
-    /**
-     * Similar to setTimeout but does apply to each individual connection rather then to the whole service audit.
-     *
-     * Default: equal to setTimeout
-     */
-    setTimeoutPerConnection(ms: number): void
     run(): Promise<ServiceAuditResult>
     run(timeout: number): Promise<ServiceAuditResult>
     run(timeoutPerConnection: number): Promise<ServiceAuditResult>
