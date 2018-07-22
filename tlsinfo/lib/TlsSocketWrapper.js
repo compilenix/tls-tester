@@ -13,16 +13,10 @@ class TlsSocketWrapper extends TimeOutableSocket {
     this.socket = null
     /** @type {tls.ConnectionOptions} */
     this.options = null
-    if (options) this.setOptions(options)
+    if (options) this.updateOptions(options)
     this.timeout = 30000
-    this.on('timeout', () => this.onTimeout())
-  }
-
-  /**
-   * @private
-   */
-  onTimeout () {
-    this.destroySocket('timeout')
+    /** @type {Error[]} */
+    this.errors = []
   }
 
   /**
@@ -30,8 +24,8 @@ class TlsSocketWrapper extends TimeOutableSocket {
    * @param {any} error
    */
   onError (error, reject = null) {
+    this.errors.push(error)
     this.destroySocket(error)
-    if (reject) reject(error)
   }
 
   /**
@@ -45,7 +39,7 @@ class TlsSocketWrapper extends TimeOutableSocket {
   /**
    * @param {tls.ConnectionOptions} options
    */
-  setOptions (options) {
+  updateOptions (options) {
     if (!options || !options.host) throw new Error('host must be defined')
 
     this.options = Object.assign(this.options || { }, options)
@@ -58,7 +52,7 @@ class TlsSocketWrapper extends TimeOutableSocket {
 
   resetOptions (options = null) {
     this.options = null
-    if (options) this.setOptions(options)
+    if (options) this.updateOptions(options)
   }
 
   setKeepAlive (enable, initialDelay) {
@@ -76,13 +70,14 @@ class TlsSocketWrapper extends TimeOutableSocket {
    * @returns {Promise<tls.TLSSocket>}
    */
   async connect (timeout = -1) {
+    if (!this.options) throw new Error('options is not defined, set with constructor or update with updateOptions()')
     this.setTimeout(timeout)
 
     return new Promise((resolve, reject) => {
       this.options.host = punycode.toASCII(this.options.host)
       this.options.servername = punycode.toASCII(this.options.servername)
       this.setSocket(tls.connect(this.options, () => {
-        resolve(this.socket)
+        this.destroySocket()
       }))
       this.options.host = punycode.toUnicode(this.options.host)
       this.options.servername = punycode.toUnicode(this.options.servername)
@@ -90,13 +85,20 @@ class TlsSocketWrapper extends TimeOutableSocket {
       this.socket.on('error', error => {
         this.onError(error, reject)
       })
+      this.socket.on('close', () => {
+        this.destroySocket()
+        if (this.errors.length > 0) {
+          reject(this.errors)
+          this.errors = []
+          return
+        }
+        this.errors = []
+        resolve()
+      })
 
       this.setKeepAlive(false)
       this.setNoDelay(true)
       this.setTimeout(this.timeout)
-      this.on('timeout', () => {
-        reject(new Error('timeout'))
-      })
     })
   }
 }

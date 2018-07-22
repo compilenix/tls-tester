@@ -15,7 +15,6 @@ class TimeOutableSocket extends events.EventEmitter {
 
   destroySocket (error = null) {
     if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
-    this.socket = null
   }
 
   /**
@@ -26,8 +25,8 @@ class TimeOutableSocket extends events.EventEmitter {
     this.socket = socket
     this.socket.setTimeout(this.timeout, () => {
       const error = 'timeout'
-      this.emit('timeout', error)
       this.destroySocket(error)
+      this.emit('timeout', error)
     })
   }
 
