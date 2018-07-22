@@ -134,14 +134,17 @@ declare module 'tlsinfo' {
 
   export interface ProtocolVersionResult {
     /**
+     * Protocols that are supported by the current Node.JS version and accepted by the Service
      * @see {ProtocolVersion.protocols}
      */
     enabled: string[]
     /**
+     * Protocols that are supported by the current Node.JS version but NOT accepted by the Service
      * @see {ProtocolVersion.protocols}
      */
     disabled: string[]
     /**
+     * Protocols that are NOT supported by the current Node.JS version
      * @see {ProtocolVersion.protocols}
      */
     unsupported: string[]
@@ -152,42 +155,34 @@ declare module 'tlsinfo' {
       'SSLv2',
       'SSLv3',
       'TLSv1',
-      'TLSv1.1',
-      'TLSv1.2',
-      'TLSv1.3'
+      'TLSv1_1',
+      'TLSv1_2',
+      'TLSv1_3'
     ]
 
     constructor()
     constructor(options: ConnectionOptions)
     /**
-     * @param protocol I.e.: TLSv1.2
+     * @param protocol I.e.: TLSv1_2
      */
     protected static map(protocol: 'SSLv2' | 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): 'SSLv2_method' | 'SSLv3_method' | 'TLSv1_method' | 'TLSv1_1_method' | 'TLSv1_2_method' | 'TLSv1_3_method' | ''
     static getSupportedProtocols(): [] | [
-      'SSLv2',
       'SSLv3',
       'TLSv1'
     ] | [
-      'SSLv2',
-      'SSLv3',
       'TLSv1',
-      'TLSv1.1',
-      'TLSv1.2'
+      'TLSv1_1',
+      'TLSv1_2'
     ] | [
-      'SSLv3',
       'TLSv1',
-      'TLSv1.1',
-      'TLSv1.2'
-    ] | [
-      'SSLv3',
-      'TLSv1',
-      'TLSv1.1',
-      'TLSv1.2',
-      'TLSv1.3'
+      'TLSv1_1',
+      'TLSv1_2',
+      'TLSv1_3'
     ]
-    test(protocol: 'SSLv2' | 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): Promise<ProtocolVersionResult>
-    test(protocol: 'SSLv2' | 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number): Promise<ProtocolVersionResult>
-    test(protocol: 'SSLv2' | 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeoutPerConnection: number): Promise<ProtocolVersionResult>
+    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): Promise<boolean>
+    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number): Promise<boolean>
+    testMultiple(protocols: string[]): Promise<ProtocolVersionResult>
+    testMultiple(protocols: string[], timeout: number): Promise<ProtocolVersionResult>
   }
 
   export interface ServiceAuditResult {

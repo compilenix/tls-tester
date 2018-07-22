@@ -1,4 +1,4 @@
-const tls = require('tls')
+const tls = require('tls') // eslint-disable-line
 const x509 = require('x509')
 
 const TlsSocketWrapper = require('./TlsSocketWrapper')
@@ -51,7 +51,7 @@ class Certificate extends TlsSocketWrapper {
       const result = new CertificateResult()
 
       try {
-        this.socket = await this.connect(timeout)
+        await this.connect(timeout)
 
         result.host = this.options.host
         result.port = this.options.port

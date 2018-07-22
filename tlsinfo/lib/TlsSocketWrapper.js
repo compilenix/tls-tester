@@ -30,7 +30,7 @@ class TlsSocketWrapper extends TimeOutableSocket {
    * @param {any} error
    */
   onError (error, reject = null) {
-    this.destroySocket('error')
+    this.destroySocket(error)
     if (reject) reject(error)
   }
 
@@ -87,7 +87,9 @@ class TlsSocketWrapper extends TimeOutableSocket {
       this.options.host = punycode.toUnicode(this.options.host)
       this.options.servername = punycode.toUnicode(this.options.servername)
 
-      this.socket.on('error', error => this.onError(error, reject))
+      this.socket.on('error', error => {
+        this.onError(error, reject)
+      })
 
       this.setKeepAlive(false)
       this.setNoDelay(true)

@@ -23,6 +23,8 @@
   },
   "dependencies": {
     "@types/node": "^9",
+    "@types/tlsinfo": "file:local-types/tlsinfo",
+    "@types/x509": "file:local-types/x509",
     "fs-extra": "6.0.1",
     "lodash": "4.17.10",
     "minimist": "1.2.0",
@@ -30,11 +32,10 @@
     "openssl-wrapper": "0.3.4",
     "punycode": "2.1.1",
     "q": "1.5.1",
+    "semver": "^5.5.0",
     "slack-node": "0.1.8",
     "sslinfo": "0.2.0",
     "tlsinfo": "file:tlsinfo",
-    "@types/tlsinfo": "file:local-types/tlsinfo",
-    "@types/x509": "file:local-types/x509",
     "uuid": "3.3.2",
     "x509": "0.3.3"
   },
