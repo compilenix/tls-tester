@@ -173,7 +173,7 @@ class ProtocolVersion extends TlsSocketWrapper {
     return new Promise(async (resolve, reject) => {
       const originalHost = this.options.host
       /** @type {Error[]} */
-      const errors = []
+      const hostErrors = []
 
       try {
         for (const hostAddress of result.ipAddress) {
@@ -194,7 +194,9 @@ class ProtocolVersion extends TlsSocketWrapper {
               'unsupported protocol',
               'socket hang up',
               'ECONNRESET',
-              'handshake failure'
+              'handshake failure',
+              'dh key too small',
+              'excessive message size'
             ]
 
             let hostAddedToDisabled = false
@@ -209,14 +211,15 @@ class ProtocolVersion extends TlsSocketWrapper {
                 }
               }
 
-              if (knownAndOkError && !hostAddedToDisabled) {
+              if (knownAndOkError) {
                 hostAddedToDisabled = true
-                result.disabled.push(hostSpecificResult)
                 continue
               }
 
-              errors.push(error)
+              hostErrors.push(error)
             }
+
+            if (hostAddedToDisabled) result.disabled.push(hostSpecificResult)
           }
         }
       } catch (error) {
@@ -227,7 +230,7 @@ class ProtocolVersion extends TlsSocketWrapper {
       }
 
       this.options.host = originalHost
-      errors.length > 0 ? reject(errors) : resolve(result)
+      hostErrors.length > 0 ? reject(hostErrors) : resolve(result)
     })
   }
 
