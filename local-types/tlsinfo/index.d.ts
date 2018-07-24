@@ -6,7 +6,7 @@
 
 declare module 'tlsinfo' {
   import { X509, TlsProtocol, Cipher } from 'x509'
-  import { ConnectionOptions, TLSSocket } from 'tls'
+  import { ConnectionOptions, TLSSocket, TlsOptions } from 'tls'
   import { Socket } from 'net'
   import { LookupAddress } from 'dns'
 
@@ -32,11 +32,13 @@ declare module 'tlsinfo' {
 
   export class TlsSocketWrapper extends TimeOutableSocket {
     protected readonly socket: TLSSocket
+    protected options: TlsOptions
 
     constructor()
     constructor(options: ConnectionOptions)
     private onError(error: any): void
     private onError(error: any, reject: (reason?: any) => void): void
+    private onError(error: any, reject: (reason?: any) => void, selfdestruct: boolean): void
     /**
      * default 30000ms -> 30s
      */
@@ -45,12 +47,18 @@ declare module 'tlsinfo' {
     resetOptions(options: ConnectionOptions): void
     setNoDelay(noDelay?: boolean): this;
     setKeepAlive(enable?: boolean, initialDelay?: number): this;
-    connect(): Promise<TLSSocket>
-    connect(timeout: number): Promise<TLSSocket>
+    connect(): Promise<void>
+    connect(timeout: number): Promise<void>
+    connect(timeout: number, selfdestruct: boolean): Promise<void>
   }
 
-  export interface CertificateResult {
-    host: string
+  export class HostAddressSpecificCertificateResult {
+    address: HostAddressResult
+    certificateResult: CertificateResult
+  }
+
+  export class CertificateResult {
+    servername: string
     port: number
     cert: X509
     certPem: string
@@ -69,11 +77,11 @@ declare module 'tlsinfo' {
      * @param cert in pem format with: -----BEGIN CERTIFICATE-----
      */
     static parsePemCertificate(cert: string): X509
-    fetch(): Promise<CertificateResult>
-    fetch(timeout: number): Promise<CertificateResult>
+    fetch(): Promise<HostAddressSpecificCertificateResult[]>
+    fetch(timeout: number): Promise<HostAddressSpecificCertificateResult[]>
   }
 
-  export interface CipherResult {
+  export class CipherResult {
     /**
      * @see {Cipher.suites}
      */
@@ -126,7 +134,7 @@ declare module 'tlsinfo' {
     test(timeoutPerConnection: number): Promise<ProtocolVersionResult>
   }
 
-  export interface HostAddressResult {
+  export class HostAddressResult {
     host: string
     address: string
     family: number
@@ -136,13 +144,13 @@ declare module 'tlsinfo' {
     static lookup(host: string): Promise<{ addresses: HostAddressResult[], warnings: string[] }>
   }
 
-  export interface HostAddressSpecificProtocolVersionResult {
+  export class HostAddressSpecificProtocolVersionResult {
     address: HostAddressResult
     protocol: string
     state: boolean
   }
 
-  export interface ProtocolVersionResult {
+  export class ProtocolVersionResult {
     host: string,
     port: number,
     ipAddress: HostAddressResult[]
@@ -233,7 +241,7 @@ declare module 'tlsinfo' {
     testMultiple(protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<ProtocolVersionResult[]>
   }
 
-  export interface ServiceAuditResult {
+  export class ServiceAuditResult {
     certificate: CertificateResult
   }
 

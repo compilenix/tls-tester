@@ -1,11 +1,22 @@
 const tls = require('tls') // eslint-disable-line
 const x509 = require('x509')
+const dns = require('dns') // eslint-disable-line
 
 const TlsSocketWrapper = require('./TlsSocketWrapper')
+const { DnsHelper, HostAddressResult } = require('./DnsHelper')
+
+class HostAddressSpecificCertificateResult {
+  constructor () {
+    /** @type {HostAddressResult} */
+    this.address = null
+    /** @type {CertificateResult} */
+    this.certificateResult = null
+  }
+}
 
 class CertificateResult {
   constructor () {
-    this.host = ''
+    this.servername = ''
     this.port = 0
     /** @type {x509.X509} */
     this.cert = null
@@ -44,32 +55,61 @@ class Certificate extends TlsSocketWrapper {
 
   /**
    * @param {number} timeout
-   * @returns {Promise<CertificateResult>}
+   * @returns {Promise<HostAddressSpecificCertificateResult[]>}
    */
   async fetch (timeout = -1) {
     return new Promise(async (resolve, reject) => {
-      const result = new CertificateResult()
+      /** @type {HostAddressSpecificCertificateResult[]} */
+      const results = []
+      const resultTemplate = new CertificateResult()
+      resultTemplate.servername = this.options.servername
+      resultTemplate.port = this.options.port
 
       try {
-        await this.connect(timeout)
-
-        result.host = this.options.host
-        result.port = this.options.port
-
-        const peerCertificate = this.socket.getPeerCertificate(true)
-        result.certPem = peerCertificate.raw.toString('base64')
-        if (peerCertificate.issuerCertificate) result.certCaPem = peerCertificate.issuerCertificate.raw.toString('base64')
-        result.cert = Certificate.parseRawPemCertificate(result.certPem)
-        if (result.certCaPem) result.certCa = Certificate.parseRawPemCertificate(result.certCaPem)
+        const { addresses } = await DnsHelper.lookup(this.options.host)
+        for (const address of addresses) {
+          const addressResult = new HostAddressSpecificCertificateResult()
+          addressResult.address = address
+          addressResult.certificateResult = Object.assign({ }, resultTemplate)
+          results.push(addressResult)
+        }
       } catch (error) {
-        return this.onError(error, reject)
+        reject(error)
       }
 
-      this.destroySocket()
-      resolve(result)
+      try {
+        for (const result of results) {
+          this.options.host = result.address.address
+          await this.connect(timeout, false)
+
+          const peerCertificate = this.socket.getPeerCertificate(true)
+          result.certificateResult.certPem = peerCertificate.raw.toString('base64')
+
+          await new Promise((resolve, reject) => {
+            try {
+              // TODO: change result.certCa into result.certChain which contains all issuer certificates sent by the server
+              if (peerCertificate.issuerCertificate) result.certificateResult.certCaPem = peerCertificate.issuerCertificate.raw.toString('base64')
+              result.certificateResult.cert = Certificate.parseRawPemCertificate(result.certificateResult.certPem)
+              if (result.certificateResult.certCaPem) result.certificateResult.certCa = Certificate.parseRawPemCertificate(result.certificateResult.certCaPem)
+              resolve()
+            } catch (error) {
+              reject(error)
+            }
+          })
+          this.destroySocket()
+        }
+      } catch (error) {
+        this.destroySocket(error)
+        return reject(error)
+      } finally {
+        this.options.host = this.options.servername
+      }
+
+      resolve(results)
     })
   }
 }
 
 module.exports.Certificate = Certificate
 module.exports.CertificateResult = CertificateResult
+module.exports.HostAddressSpecificCertificateResult = HostAddressSpecificCertificateResult

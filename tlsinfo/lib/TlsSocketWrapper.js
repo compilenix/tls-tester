@@ -9,9 +9,15 @@ class TlsSocketWrapper extends TimeOutableSocket {
    */
   constructor (options = null) {
     super()
-    /** @type {tls.TLSSocket} */
+    /**
+     * @protected
+     * @type {tls.TLSSocket}
+     */
     this.socket = null
-    /** @type {tls.ConnectionOptions} */
+    /**
+     * @protected
+     * @type {tls.ConnectionOptions}
+     */
     this.options = null
     if (options) this.updateOptions(options)
     this.timeout = 30000
@@ -20,12 +26,13 @@ class TlsSocketWrapper extends TimeOutableSocket {
   }
 
   /**
-   * @param {(reason?: any) => void} reject
    * @param {any} error
+   * @param {(reason?: any) => void} reject
+   * @param {boolean} selfdestruct
    */
-  onError (error, reject = null) {
+  onError (error, reject = null, selfdestruct = true) {
     this.errors.push(error)
-    this.destroySocket(error)
+    if (selfdestruct) this.destroySocket(error)
   }
 
   /**
@@ -67,9 +74,10 @@ class TlsSocketWrapper extends TimeOutableSocket {
 
   /**
    * @param {number} timeout
-   * @returns {Promise<tls.TLSSocket>}
+   * @param {boolean} selfdestruct
+   * @returns {Promise<void>}
    */
-  async connect (timeout = -1) {
+  async connect (timeout = -1, selfdestruct = true) {
     if (!this.options) throw new Error('options is not defined, set with constructor or update with updateOptions()')
     this.setTimeout(timeout)
 
@@ -77,16 +85,17 @@ class TlsSocketWrapper extends TimeOutableSocket {
       this.options.host = punycode.toASCII(this.options.host)
       this.options.servername = punycode.toASCII(this.options.servername)
       this.setSocket(tls.connect(this.options, () => {
-        this.destroySocket()
+        if (selfdestruct) this.destroySocket()
+        resolve()
       }))
       this.options.host = punycode.toUnicode(this.options.host)
       this.options.servername = punycode.toUnicode(this.options.servername)
 
       this.socket.on('error', error => {
-        this.onError(error, reject)
+        this.onError(error, reject, selfdestruct)
       })
       this.socket.on('close', () => {
-        this.destroySocket()
+        if (selfdestruct) this.destroySocket()
         if (this.errors.length > 0) {
           reject(this.errors)
           this.errors = []

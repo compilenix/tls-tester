@@ -8,6 +8,7 @@ const os = require('os')
 const { execSync } = require('child_process')
 
 const tlsinfo = require('tlsinfo')
+const { Certificate, HostAddressSpecificCertificateResult, Cipher, ProtocolVersion, ServiceAudit, TimeOutableSocket, TlsSocketWrapper } = require('tlsinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
