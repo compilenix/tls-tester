@@ -92,7 +92,7 @@ When a error occures, the `callback` or `webhook` might not be invoked / complet
 * subjectAltName does include a matching hostname (also working with wildcards)
 * public key size is greater or equal to 4096
 * weak signature algorithm (sha1 or md*)
-* weak / outdated protocols: SSLv2, SSLv3
+* weak / outdated protocols: TLS 1.0, TLS 1.1
 * modern protocol not supported / enabled: TLS 1.2
 * CT (Certificate Transparency)
 * intermediate ca (if chain is sent by server):
@@ -106,39 +106,43 @@ When a error occures, the `callback` or `webhook` might not be invoked / complet
   * ... for the complete List search for "checkWeakCipherUsage" in this repo
 
 # What it won't test for you
+## but maybe in the future
+* TLS 1.3 cipher and protocol support (not yet)
 * certificates in chain not send by the server
 * Extended Validation
-* OCSP Must Staple
+* SSL/TLS compression support
+* Public Key Pinning (Not HPKP, just the abilaty to see if one or more "pinns" are in the chain)
+* TLS Session resumption support (caching)
+* TLS Session resumption support (tickets)
 * OCSP stapling
+* OCSP Must Staple
 * Certificate Revocation
-* SSLv2 cipher
-* SSLv3 cipher
+* ALPN (Application-Layer Protocol Negotiation)
+* NPN (Next Protocol Negotiation) NOTE: ALPN replaces NPN
 * Forward Secrecy
+
+## and probably never
+* SSL 2 cipher and protocol support
+* SSL 3 cipher and protocol support
 * Is trusted by common trust stores (Mozilla, Apple, Android, Java, Windows)
 * Client Handshake Simulation (i.e.: Java 8, Firefox, Android)
 * DROWN Attack
 * BEAST attack
-* POODLE (SSLv3)
+* POODLE (SSL 3)
 * POODLE (TLS)
 * Downgrade attack prevention
 * Weak key (Debian)
 * Uses common DH primes
-* SSL/TLS compression
 * Heartbeat and it's vulnerability (https://community.qualys.com/blogs/securitylabs/2014/04/08/ssl-labs-test-for-the-heartbleed-attack)
 * Ticketbleed (vulnerability)
 * OpenSSL CCS vuln. (CVE-2014-0224)
-* OpenSSL Padding Oracle vuln.
-(CVE-2016-2107)
+* OpenSSL Padding Oracle vuln. (CVE-2016-2107)
 * ROBOT (vulnerability)
-* TLS Session resumption (caching)
-* TLS Session resumption (tickets)
 * Long handshake intolerance
 * TLS extension intolerance
 * TLS version intolerance
 * ECDH public server param reuse
 * SSL 2 handshake compatibility
-* ALPN (Application-Layer Protocol Negotiation)
-* NPN (Next Protocol Negotiation) NOTE: ALPN replaces NPN
 
 ## What it never will test / cover for you, by design
 * Strict Transport Security (HSTS)
