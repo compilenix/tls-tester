@@ -39,6 +39,8 @@ declare module 'tlsinfo' {
     private onError(error: any): void
     private onError(error: any, reject: (reason?: any) => void): void
     private onError(error: any, reject: (reason?: any) => void, selfdestruct: boolean): void
+    setTimeout(ms: number): void
+    static validateOptions(options: ConnectionOptions): ConnectionOptions
     /**
      * default 30000ms -> 30s
      */

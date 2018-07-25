@@ -46,15 +46,20 @@ class TlsSocketWrapper extends TimeOutableSocket {
   /**
    * @param {tls.ConnectionOptions} options
    */
-  updateOptions (options) {
+  static validateOptions (options) {
     if (!options || !options.host) throw new Error('host must be defined')
+    if (!options.servername) options.servername = options.host
+    if (!options.port) options.port = 443
+    if (!options.minDHSize) options.minDHSize = 1
+    if (options.rejectUnauthorized === undefined) options.rejectUnauthorized = false
+    return options
+  }
 
-    this.options = Object.assign(this.options || { }, options)
-
-    if (!options.servername) this.options.servername = this.options.host
-    if (!this.options.port) this.options.port = 443
-    if (!this.options.minDHSize) this.options.minDHSize = 1
-    if (this.options.rejectUnauthorized === undefined) this.options.rejectUnauthorized = false
+  /**
+   * @param {tls.ConnectionOptions} options
+   */
+  updateOptions (options) {
+    this.options = Object.assign(this.options || { }, TlsSocketWrapper.validateOptions(options))
   }
 
   resetOptions (options = null) {
