@@ -2,7 +2,7 @@ const tls = require('tls') // eslint-disable-line
 const crypto = require('crypto')
 
 const TlsSocketWrapper = require('./TlsSocketWrapper')
-const { DnsHelper, HostAddressResult } = require('./DnsHelper')
+const { DnsHelper, HostAddressResult } = require('./DnsHelper') // eslint-disable-line
 
 class ProtocolVersionSpecificCipherResult {
   constructor () {
