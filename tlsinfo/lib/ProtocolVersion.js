@@ -35,6 +35,29 @@ class ProtocolVersionResult {
      */
     this.warnings = []
   }
+
+  inspect () {
+    const res = `${this.protocol}${this.enabled.length > 0 ? ` -> ${this.enabled.length} [` : ''}` +
+    (
+      this.enabled.length === 0 ? '' : this.enabled.map(
+        addr => ` { IPv${addr.family}: ${addr.address} },`
+      ).join('')
+    )
+    if (res.endsWith(',')) {
+      return res.slice(0, res.length - 1) + ' ]'
+    }
+    return res
+  }
+
+  toString () {
+    const res = `\n${this.protocol} count: ${this.enabled.length}` +
+    (
+      this.enabled.length === 0 ? '' : this.enabled.map(
+        addr => `\n\tIPv${addr.family} ${addr.address}`
+      ).join('')
+    )
+    return res
+  }
 }
 
 class ProtocolVersion extends TlsSocketWrapper {
