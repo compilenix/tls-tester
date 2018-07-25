@@ -569,8 +569,17 @@ async function handleApiRequest (request, response) {
         }
 
         if ((!task.callback || typeof task.callback !== 'string' || task.callback.trim().length < 10) &&
-          (!task.webhook || typeof task.webhook !== 'string' || task.webhook.trim().length < 10)) {
+              (!task.webhook || typeof task.webhook !== 'string' || task.webhook.trim().length < 10)) {
           const message = JSON.stringify({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' })
+          response.statusCode = 400
+          response.setHeader('content-type', contentTypeJson)
+          response.end(`${message}\n`, 'utf8')
+          return resolve()
+        }
+
+        if ((task.callback && config.httpsCallbacksOnly && !task.callback.startsWith('https://')) ||
+             (task.webhook && config.httpsCallbacksOnly && !task.webhook.startsWith('https://'))) {
+          const message = JSON.stringify({ message: '"callback" or "webhook" are not HTTPS. This is administratively prohibited.' })
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
           response.end(`${message}\n`, 'utf8')
@@ -584,9 +593,9 @@ async function handleApiRequest (request, response) {
         response.end(`${message}\n`, 'utf8')
         tasks.push(task)
         const clientAddress = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'] : request.connection.remoteAddress
-        const logCallbackUrl = task.callback ? ` with callback ${Config.task.callback}` : ''
-        const logWebookUrl = task.webhook ? ` with webook ${Config.task.webhook}` : ''
-        if (config.enableConsoleLog) console.log(`got new task for: ${Config.task.host} from ${clientAddress}${logCallbackUrl}${logWebookUrl}`)
+        const logCallbackUrl = task.callback ? ` with callback ${task.callback}` : ''
+        const logWebookUrl = task.webhook ? ` with webook ${task.webhook}` : ''
+        if (config.enableConsoleLog) console.log(`got new task for: ${task.host} from ${clientAddress}${logCallbackUrl}${logWebookUrl}`)
         return resolve()
       })
     } else {

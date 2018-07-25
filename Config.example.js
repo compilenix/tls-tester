@@ -3,6 +3,7 @@ class Config {
     this.version = 1
     this.startHttpServer = false
     this.httpServerPort = 16636
+    this.httpsCallbacksOnly = true // applies to webhooks, too
     this.validUntilDays = 10
     this.connectionTimeoutSeconds = 60 // connection timeout task / domain (has to be greater than 0)
     this.defaultPort = 443
