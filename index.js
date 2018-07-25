@@ -502,6 +502,28 @@ async function processDomain (task) {
 }
 
 /**
+ * @param {string} url
+ * @param {http.IncomingMessage} request
+ * @returns {boolean}
+ */
+function validateCallback (url = '', request) {
+  if (!url) return false
+  if (!(request instanceof http.IncomingMessage) || !request.socket.remoteAddress) return false
+  if (url.trim().length < 10) return false
+  if (config.httpsCallbacksOnly && !url.startsWith('https://')) {
+    if (!url.startsWith('http://')) return false
+    if (config.httpCallbacksAllowedFrom.includes(request.socket.remoteAddress)) return true // Is OK
+    for (const allowedTo of config.httpCallbacksAllowedTo) {
+      if (typeof allowedTo === 'string' && url.indexOf(allowedTo) >= 0) return true // Is OK
+      if (allowedTo instanceof RegExp && allowedTo.test(url)) return true // Is OK
+    }
+    return false
+  }
+  if (!url.startsWith('https://')) return false
+  return true // Is OK
+}
+
+/**
  * @param {http.IncomingMessage} request
  * @param {http.ServerResponse} response
  */
@@ -577,8 +599,7 @@ async function handleApiRequest (request, response) {
           return resolve()
         }
 
-        if ((task.callback && config.httpsCallbacksOnly && !task.callback.startsWith('https://')) ||
-             (task.webhook && config.httpsCallbacksOnly && !task.webhook.startsWith('https://'))) {
+        if (validateCallback(task.callback, request) && validateCallback(task.webhook, request)) {
           const message = JSON.stringify({ message: '"callback" or "webhook" are not HTTPS. This is administratively prohibited.' })
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
