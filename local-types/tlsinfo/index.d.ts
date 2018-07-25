@@ -542,7 +542,7 @@ declare module 'tlsinfo' {
     certificate: CertificateResult
   }
 
-  export class ServiceAudit extends TimeOutableSocket {
+  export class TlsServiceAudit extends TimeOutableSocket {
     constructor()
     constructor(options: ConnectionOptions)
     run(): Promise<TlsServiceAuditResult>

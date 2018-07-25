@@ -99,7 +99,7 @@ function overrideOptionsFromCommandLineArguments () {
 
 /**
  * @param {string} warning
- * @param {tlsinfo.ServiceAuditResult} result
+ * @param {TlsServiceAudit} result
  */
 function isReportingEnabled (warning, result = undefined) {
   const containsReportingPredicate = /** @param {string} x */ x => x === warning
