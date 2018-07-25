@@ -1,5 +1,3 @@
-/// <reference path="typings/index.d.ts"/>
-
 class Config {
   constructor () {
     this.version = 1
@@ -64,4 +62,29 @@ class Config {
   }
 }
 
-module.exports = new Config()
+class Task {
+  constructor () {
+    this.host = ''
+    this.port = 443
+    /** @type {string[]} */
+    this.ignore = []
+    this.id = ''
+    this.webhook = ''
+    this.callback = ''
+  }
+}
+
+class TaskResult {
+  constructor () {
+    this.id = ''
+    this.host = ''
+    this.port = 443
+    /** @type {string[]} */
+    this.items = []
+    this.error = ''
+  }
+}
+
+module.exports.Config = new Config()
+module.exports.Task = Task
+module.exports.TaskResult = TaskResult

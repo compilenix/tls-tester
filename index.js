@@ -7,8 +7,6 @@ const { URL: Url } = url
 const os = require('os')
 const { execSync } = require('child_process')
 
-const tlsinfo = require('tlsinfo')
-const { Certificate, HostAddressSpecificCertificateResult, Cipher, ProtocolVersion, ServiceAudit, TimeOutableSocket, TlsSocketWrapper } = require('tlsinfo')
 const fs = require('fs-extra')
 const moment = require('moment')
 const Slack = require('slack-node')
@@ -16,34 +14,14 @@ const punycode = require('./node_modules/punycode')
 const argv = require('minimist')(process.argv.slice(2))
 const uuidv4 = require('uuid/v4')
 
-if (!fs.existsSync('./config.js')) {
-  fs.copySync('./config.example.js', './config.js')
+const { TlsServiceAudit } = require('tlsinfo')
+const Config = require('./Config.js')
+
+if (!fs.existsSync('./Config.js')) {
+  fs.copySync('./Config.example.js', './Config.js')
 }
 
-class Task {
-  constructor () {
-    this.host = ''
-    this.port = 443
-    /** @type {string[]} */
-    this.ignore = []
-    this.id = ''
-    this.webhook = ''
-    this.callback = ''
-  }
-}
-
-class TaskResult {
-  constructor () {
-    this.id = ''
-    this.host = ''
-    this.port = 443
-    /** @type {string[]} */
-    this.items = []
-    this.error = ''
-  }
-}
-
-let config = require('./config.js')
+let config = Config.Config
 let slack = new Slack()
 let messagesToSend = []
 /** @type {TaskResult} */
