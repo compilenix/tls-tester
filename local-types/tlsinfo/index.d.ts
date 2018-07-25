@@ -394,6 +394,9 @@ declare module 'tlsinfo' {
      * @param ipVersions default is [4, 6]
      */
     testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult>
+    static filterEnabled(cipherResults: CipherResult[]): CipherResult[]
+    static filterDisabled(cipherResults: CipherResult[]): CipherResult[]
+    static filterUnsupported(cipherResults: CipherResult[]): CipherResult[]
   }
 
   export class HostAddressResult {

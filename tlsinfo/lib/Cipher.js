@@ -247,6 +247,27 @@ class Cipher extends TlsSocketWrapper {
       }
     })
   }
+
+  /**
+   * @param {CipherResult[]} cipherResults
+   */
+  static filterEnabled (cipherResults) {
+    return cipherResults.filter(result => result.protocolSpecificResults.find(protocol => protocol.enabled.length > 0) !== undefined)
+  }
+
+  /**
+   * @param {CipherResult[]} cipherResults
+   */
+  static filterDisabled (cipherResults) {
+    return cipherResults.filter(result => result.protocolSpecificResults.find(protocol => protocol.disabled.length > 0) !== undefined)
+  }
+
+  /**
+   * @param {CipherResult[]} cipherResults
+   */
+  static filterUnsupported (cipherResults) {
+    return cipherResults.filter(result => result.protocolSpecificResults.find(protocol => protocol.unsupported.length > 0) !== undefined)
+  }
 }
 
 Cipher.suitesString = ''
