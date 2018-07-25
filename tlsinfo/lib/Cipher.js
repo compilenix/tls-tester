@@ -26,6 +26,29 @@ class CipherResult {
     /** @type {ProtocolVersionSpecificCipherResult[]} */
     this.protocolSpecificResults = []
   }
+
+  inspect () {
+    const res = `${this.cipher}` +
+    this.protocolSpecificResults.map(
+      proto => `${proto.enabled.length > 0 ? ` { ${proto.protocol}:` : ''}` + proto.enabled.map(
+        addr => ` IPv${addr.family}: ${addr.address}`
+      ) + `${proto.enabled.length > 0 ? ` },` : ''}`
+    ).join('')
+    if (res.endsWith(',')) {
+      return res.slice(0, res.length - 1)
+    }
+    return res
+  }
+
+  toString () {
+    const res = `${this.cipher}\n` +
+    this.protocolSpecificResults.map(
+      proto => proto.enabled.map(
+        addr => `\t${proto.protocol}\t-> IPv${addr.family} ${addr.address}\n`
+      )
+    ).join('')
+    return res
+  }
 }
 
 class Cipher extends TlsSocketWrapper {
