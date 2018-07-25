@@ -24,14 +24,14 @@ if (!fs.existsSync('./Config.js')) {
 let config = Config.Config
 let slack = new Slack()
 let messagesToSend = []
-/** @type {TaskResult} */
+/** @type {Config.TaskResult} */
 let taskResult = null
 let isFirstMessageOfItem = true
 let isFirstOveralMessage = true
 let taskRunning = false
-/** @type {Task[]} */
+/** @type {Config.Task[]} */
 let tasks = []
-/** @type {Task[]} */
+/** @type {Config.Task[]} */
 let tasksToEnqueue = []
 const contentTypeJson = 'application/json; charset=utf8'
 
@@ -158,7 +158,7 @@ async function sendReportWebook (uri) {
 }
 
 /**
- * @param {Task} task
+ * @param {Config.Task} task
  */
 async function sendReportCallback (task) {
   const callback = new Url(task.callback)
@@ -211,7 +211,7 @@ async function sendReportCallback (task) {
 }
 
 /**
- * @param {Task} task
+ * @param {Config.Task} task
  */
 async function sendReport (task) {
   if (task && task.callback) await sendReportCallback(task)
@@ -222,7 +222,7 @@ async function sendReport (task) {
  * @param {string} message
  * @param {string} host
  * @param {number} port
- * @param {Task} task
+ * @param {Config.Task} task
  * @param {string} level
  */
 function addMessage (message, host, port, task, level = 'error') {
@@ -272,7 +272,7 @@ function addMessage (message, host, port, task, level = 'error') {
  * @param {ServerResult} result
  * @param {string} host
  * @param {number} port
- * @param {Task} task
+ * @param {Config.Task} task
  */
 function checkWeakCipherUsage (ciphers, result, host, port, task) {
   if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0 && isReportingEnabled('HasCipherNULL', result)) {
@@ -339,7 +339,7 @@ function checkWeakCipherUsage (ciphers, result, host, port, task) {
 
 /**
  * @param {ServerResult} result
- * @param {Task} task
+ * @param {Config.Task} task
  */
 function checkServerResult (result, task) {
   const asciiHostname = result.host
@@ -439,11 +439,11 @@ function checkServerResult (result, task) {
 }
 
 /**
- * @param {Task} task
+ * @param {Config.Task} task
  */
 async function processDomain (task) {
   if (!task.host) {
-    addMessage(`host not defined for ${task}`, task.host, task.port, task)
+    addMessage(`host not defined for ${Config.task}`, task.host, task.port, task)
     return
   }
   if (!task.port) {
@@ -548,7 +548,7 @@ async function handleApiRequest (request, response) {
       request.on('end', async () => {
         if (hasError) return resolve()
 
-        /** @type {Task} */
+        /** @type {Config.Task} */
         let task
         try {
           task = JSON.parse(body)
@@ -584,9 +584,9 @@ async function handleApiRequest (request, response) {
         response.end(`${message}\n`, 'utf8')
         tasks.push(task)
         const clientAddress = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'] : request.connection.remoteAddress
-        const logCallbackUrl = task.callback ? ` with callback ${task.callback}` : ''
-        const logWebookUrl = task.webhook ? ` with webook ${task.webhook}` : ''
-        if (config.enableConsoleLog) console.log(`got new task for: ${task.host} from ${clientAddress}${logCallbackUrl}${logWebookUrl}`)
+        const logCallbackUrl = task.callback ? ` with callback ${Config.task.callback}` : ''
+        const logWebookUrl = task.webhook ? ` with webook ${Config.task.webhook}` : ''
+        if (config.enableConsoleLog) console.log(`got new task for: ${Config.task.host} from ${clientAddress}${logCallbackUrl}${logWebookUrl}`)
         return resolve()
       })
     } else {
@@ -611,14 +611,14 @@ async function handleApiRequest (request, response) {
     }
     tasksToEnqueue = []
     if (!task) { taskRunning = false; return }
-    if (config.startHttpServer || config.enableConsoleLog) console.log(`running task for ${task.host}`)
+    if (config.startHttpServer || config.enableConsoleLog) console.log(`running task for ${Config.task.host}`)
     messagesToSend = []
     taskResult = null
     await processDomain(task)
     await sendReport(task)
     messagesToSend = []
     taskResult = null
-    if (config.enableConsoleLog) console.log(`number of tasks remaining: ${tasks.length}`)
+    if (config.enableConsoleLog) console.log(`number of tasks remaining: ${Config.tasks.length}`)
     taskRunning = false
   }, 100)
 
