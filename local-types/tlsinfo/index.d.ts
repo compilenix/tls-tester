@@ -79,6 +79,8 @@ declare module 'tlsinfo' {
     public static parsePemCertificate(cert: string): X509
     fetch(): Promise<HostAddressSpecificCertificateResult[]>
     fetch(timeout: number): Promise<HostAddressSpecificCertificateResult[]>
+    fetch(timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<HostAddressSpecificCertificateResult[]>
+    fetch(timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<HostAddressSpecificCertificateResult[]>
   }
 
   export class ProtocolVersionSpecificCipherResult {

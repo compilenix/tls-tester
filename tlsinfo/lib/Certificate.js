@@ -3,7 +3,7 @@ const x509 = require('x509')
 const dns = require('dns') // eslint-disable-line
 
 const TlsSocketWrapper = require('./TlsSocketWrapper')
-const { DnsHelper, HostAddressResult } = require('./DnsHelper')
+const { DnsHelper, HostAddressResult } = require('./DnsHelper') // eslint-disable-line
 
 class HostAddressSpecificCertificateResult {
   constructor () {
@@ -55,9 +55,11 @@ class Certificate extends TlsSocketWrapper {
 
   /**
    * @param {number} timeout
+   * @param {number[]} ipVersions default is [4, 6]
+   * @param {HostAddressResult[]} addresses
    * @returns {Promise<HostAddressSpecificCertificateResult[]>}
    */
-  async fetch (timeout = -1) {
+  async fetch (timeout = -1, ipVersions = [4, 6], addresses = []) {
     return new Promise(async (resolve, reject) => {
       /** @type {HostAddressSpecificCertificateResult[]} */
       const results = []
@@ -66,7 +68,10 @@ class Certificate extends TlsSocketWrapper {
       resultTemplate.port = this.options.port
 
       try {
-        const addresses = await DnsHelper.lookup(this.options.host)
+        if (!addresses || addresses.length === 0) {
+          addresses = await DnsHelper.lookup(this.options.host)
+        }
+
         for (const address of addresses) {
           const addressResult = new HostAddressSpecificCertificateResult()
           addressResult.address = address
@@ -80,6 +85,8 @@ class Certificate extends TlsSocketWrapper {
       try {
         for (const result of results) {
           this.options.host = result.address.address
+
+          // set false to prevent socket self-destruct (default) to be able to receive peer certificates
           await this.connect(timeout, false)
 
           const peerCertificate = this.socket.getPeerCertificate(true)
