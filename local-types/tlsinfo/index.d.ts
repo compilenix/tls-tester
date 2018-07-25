@@ -372,6 +372,13 @@ declare module 'tlsinfo' {
      */
     test(cipher: string, protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult>
     /**
+     * @param cipher I.e.: 'AES128-GCM-SHA256'
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @param ipVersions default is [4, 6]
+     */
+    test(cipher: string, protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<CipherResult>
+    /**
      * Test executes using all supported protocols (ProtocolVersion.getSupportedProtocols())
      * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
      */
@@ -394,6 +401,13 @@ declare module 'tlsinfo' {
      * @param ipVersions default is [4, 6]
      */
     testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult>
+    /**
+     * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @param ipVersions default is [4, 6]
+     */
+    testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<CipherResult>
     static filterEnabled(cipherResults: CipherResult[]): CipherResult[]
     static filterDisabled(cipherResults: CipherResult[]): CipherResult[]
     static filterUnsupported(cipherResults: CipherResult[]): CipherResult[]
@@ -488,6 +502,13 @@ declare module 'tlsinfo' {
      */
     test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<ProtocolVersionResult>
     /**
+     * @param protocol I.e.: TLSv1_2
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @see {ProtocolVersion.setTimeout}
+     * @param ipVersions default is [4, 6]
+     */
+    test(protocol: 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3', timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<ProtocolVersionResult>
+    /**
      * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]
      */
     testMultiple(protocols: string[]): Promise<ProtocolVersionResult[]>
@@ -504,6 +525,13 @@ declare module 'tlsinfo' {
      * @see {ProtocolVersion.setTimeout}
      */
     testMultiple(protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<ProtocolVersionResult[]>
+    /**
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @param ipVersions default is [4, 6]
+     * @see {ProtocolVersion.setTimeout}
+     */
+    testMultiple(protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<ProtocolVersionResult[]>
   }
 
   export class ServiceAuditResult {

@@ -105,19 +105,23 @@ class ProtocolVersion extends TlsSocketWrapper {
    * @param {number} timeout -1 is default, which means: don't change the current timeout value
    * @see {ProtocolVersion.setTimeout}
    * @param {number[]} ipVersions default is [4, 6]
+   * @param {HostAddressResult[]} addresses
    * @returns {Promise<ProtocolVersionResult>} {ProtocolVersionResult}
    * @see {ProtocolVersion.getSupportedProtocols}
    */
-  async test (protocol, timeout = -1, ipVersions = [4, 6]) {
+  async test (protocol, timeout = -1, ipVersions = [4, 6], addresses = []) {
     const result = new ProtocolVersionResult()
     if (!protocol) throw new Error('protocol must be defined')
 
     result.protocol = protocol
     result.host = this.options.host
     result.port = this.options.port
+
     try {
-      const addresses = await DnsHelper.lookup(this.options.host)
-      result.ipAddress = addresses
+      if (!addresses || addresses.length === 0) {
+        const resolvedAddrs = await DnsHelper.lookup(this.options.host)
+        result.ipAddress = resolvedAddrs
+      }
     } catch (error) {
       throw error
     }
@@ -238,14 +242,23 @@ class ProtocolVersion extends TlsSocketWrapper {
    * @param {number} timeout -1 is default, which means: don't change the current timeout value
    * @see {ProtocolVersion.setTimeout}
    * @param {number[]} ipVersions default is [4, 6]
+   * @param {HostAddressResult[]} addresses
    * @returns {Promise<ProtocolVersionResult[]>} {ProtocolVersionResult[]}
    * @see {ProtocolVersion.getSupportedProtocols}
    */
-  async testMultiple (protocols, timeout = -1, ipVersions = [4, 6]) {
+  async testMultiple (protocols, timeout = -1, ipVersions = [4, 6], addresses = []) {
     if (!protocols || !protocols.length || protocols.length === 0) throw new Error('protocols must be defined, a array / list like object and must have at least one element')
 
     /** @type {ProtocolVersionResult[]} */
     const results = []
+
+    try {
+      if (!addresses || addresses.length === 0) {
+        addresses = await DnsHelper.lookup(this.options.host)
+      }
+    } catch (error) {
+      throw error
+    }
 
     return new Promise(async (resolve, reject) => {
       try {

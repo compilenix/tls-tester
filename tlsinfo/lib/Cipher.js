@@ -77,10 +77,11 @@ class Cipher extends TlsSocketWrapper {
    * @see {ProtocolVersion.setTimeout}
    * @param {number} timeout -1 is default, which means: don't change the current timeout value
    * @param {number[]} ipVersions default is [4, 6]
+   * @param {HostAddressResult[]} addresses
    * @returns {Promise<CipherResult>} {CipherResult}
    * @see {ProtocolVersion.getSupportedProtocols}
    */
-  async test (cipher, protocols = [], timeout = -1, ipVersions = [4, 6]) {
+  async test (cipher, protocols = [], timeout = -1, ipVersions = [4, 6], addresses = []) {
     const { ProtocolVersion } = require('./ProtocolVersion')
     if (!cipher || typeof cipher !== 'string') throw new Error('cipher must be defined and type of string')
     if (!protocols || protocols.length === 0) protocols = ProtocolVersion.getSupportedProtocols()
@@ -90,8 +91,10 @@ class Cipher extends TlsSocketWrapper {
     result.port = this.options.port
 
     try {
-      const addresses = await DnsHelper.lookup(this.options.host)
-      result.ipAddress = addresses
+      if (!addresses || addresses.length === 0) {
+        const resolvedAddrs = await DnsHelper.lookup(this.options.host)
+        result.ipAddress = resolvedAddrs
+      }
     } catch (error) {
       throw error
     }
@@ -247,14 +250,23 @@ class Cipher extends TlsSocketWrapper {
    * @see {ProtocolVersion.setTimeout}
    * @param {number} timeout -1 is default, which means: don't change the current timeout value
    * @param {number[]} ipVersions default is [4, 6]
+   * @param {HostAddressResult[]} addresses
    * @returns {Promise<CipherResult[]>} {CipherResult}
    * @see {ProtocolVersion.getSupportedProtocols}
    */
-  async testMultiple (ciphers, protocols = [], timeout = -1, ipVersions = [4, 6]) {
+  async testMultiple (ciphers, protocols = [], timeout = -1, ipVersions = [4, 6], addresses = []) {
     if (!ciphers || !ciphers.length || ciphers.length === 0) throw new Error('ciphers must be defined, a array / list like object and must have at least one element')
 
     /** @type {CipherResult[]} */
     const results = []
+
+    try {
+      if (!addresses || addresses.length === 0) {
+        addresses = await DnsHelper.lookup(this.options.host)
+      }
+    } catch (error) {
+      throw error
+    }
 
     return new Promise(async (resolve, reject) => {
       try {
