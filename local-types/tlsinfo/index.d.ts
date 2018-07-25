@@ -538,15 +538,16 @@ declare module 'tlsinfo' {
     testMultiple(protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<ProtocolVersionResult[]>
   }
 
-  export class ServiceAuditResult {
+  export class TlsServiceAuditResult {
     certificate: CertificateResult
   }
 
   export class ServiceAudit extends TimeOutableSocket {
     constructor()
     constructor(options: ConnectionOptions)
-    run(): Promise<ServiceAuditResult>
-    run(timeout: number): Promise<ServiceAuditResult>
-    run(timeoutPerConnection: number): Promise<ServiceAuditResult>
+    run(): Promise<TlsServiceAuditResult>
+    run(timeout: number): Promise<TlsServiceAuditResult>
+    run(timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<TlsServiceAuditResult>
+    run(timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<TlsServiceAuditResult>
   }
 }
