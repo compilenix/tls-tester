@@ -475,7 +475,7 @@ declare module 'tlsinfo' {
      * @param protocol I.e.: TLSv1_2
      */
     protected static map(protocol: 'SSLv2' | 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): 'SSLv2_method' | 'SSLv3_method' | 'TLSv1_method' | 'TLSv1_1_method' | 'TLSv1_2_method' | 'TLSv1_3_method' | ''
-    public static getSupportedProtocols(): [] | [
+    public static getSupportedProtocols(): string[] | [
       'SSLv3',
       'TLSv1'
     ] | [
