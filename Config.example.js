@@ -1,14 +1,14 @@
 class Config {
   constructor () {
     this.startHttpServer = false
-    this.httpServerPort = 16636
+    this.httpServerPort = 26591
     this.httpsCallbacksOnly = true // applies to webhooks, too
-    this.validUntilDays = 10
-    this.connectionTimeoutSeconds = 60 // connection timeout task / domain (has to be greater than 0)
     /** @type {string[]} */
     this.httpCallbacksAllowedFrom = [ ] // string[] of ip addresses allowed HTTP callbacks and webhooks even if httpsCallbacksOnly is set to true
     /** @type {(string | RegExp)[]} */
     this.httpCallbacksAllowedTo = [ ] // webooks / callback urls matching one of the specified entries are allowed to specify HTTP urls even if httpsCallbacksOnly is set to true
+    this.validUntilDays = 30
+    this.connectionTimeoutSeconds = 10 // connection timeout task / domain (has to be greater than 0)
     this.defaultPort = 443
     this.ignore = [] // this warnings / errors will be ignored on all domains
 
