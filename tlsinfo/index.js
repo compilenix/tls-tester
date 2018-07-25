@@ -2,6 +2,8 @@ const { TlsServiceAudit, TlsServiceAuditResult } = require('./lib/TlsServiceAudi
 const { Certificate, CertificateResult, HostAddressSpecificCertificateResult } = require('./lib/Certificate')
 const { ProtocolVersion, ProtocolVersionResult } = require('./lib/ProtocolVersion')
 const { Cipher, CipherResult, ProtocolVersionSpecificCipherResult } = require('./lib/Cipher')
+const TlsSocketWrapper = require('./lib/TlsSocketWrapper')
+const TimeOutableSocket = require('./lib/TimeOutableSocket')
 
 module.exports = {
   TlsServiceAudit: TlsServiceAudit,
@@ -14,6 +16,6 @@ module.exports = {
   Cipher: Cipher,
   ProtocolVersionSpecificCipherResult: ProtocolVersionSpecificCipherResult,
   CipherResult: CipherResult,
-  TlsSocketWrapper: ProtocolVersion,
-  TimeOutableSocket: ProtocolVersion
+  TlsSocketWrapper: TlsSocketWrapper,
+  TimeOutableSocket: TimeOutableSocket
 }
