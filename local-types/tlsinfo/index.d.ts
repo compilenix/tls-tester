@@ -72,32 +72,32 @@ declare module 'tlsinfo' {
     /**
      * @param certRaw in pem format without: -----BEGIN CERTIFICATE-----
      */
-    static parseRawPemCertificate(certRaw: string): X509
+    public static parseRawPemCertificate(certRaw: string): X509
     /**
      * @param cert in pem format with: -----BEGIN CERTIFICATE-----
      */
-    static parsePemCertificate(cert: string): X509
+    public static parsePemCertificate(cert: string): X509
     fetch(): Promise<HostAddressSpecificCertificateResult[]>
     fetch(timeout: number): Promise<HostAddressSpecificCertificateResult[]>
   }
 
+  export class ProtocolVersionSpecificCipherResult {
+    protocol: string
+    enabled: HostAddressResult[]
+    disabled: HostAddressResult[]
+    unsupported: HostAddressResult[]
+  }
+
   export class CipherResult {
-    /**
-     * @see {Cipher.suites}
-     */
-    enabled: string[]
-    /**
-     * @see {Cipher.suites}
-     */
-    disabled: string[]
-    /**
-     * @see {Cipher.suites}
-     */
-    unsupported: string[]
+    host: string
+    port: number
+    cipher: string
+    ipAddress: HostAddressResult[]
+    protocolSpecificResults: ProtocolVersionSpecificCipherResult[]
   }
 
   export class Cipher extends TlsSocketWrapper {
-    static readonly suites: [
+    public static readonly suites: [
       // SSL v3.0 cipher suites
       'NULL-MD5', // SSL_RSA_WITH_NULL_MD5
       'NULL-SHA', // SSL_RSA_WITH_NULL_SHA
@@ -172,12 +172,11 @@ declare module 'tlsinfo' {
       'DHE-RSA-SEED-SHA', // TLS_DHE_RSA_WITH_SEED_CBC_SHA
       'ADH-SEED-SHA', // TLS_DH_anon_WITH_SEED_CBC_SHA
 
-      // NOTE: this does require to set crypto.setEngine()
       // GOST ciphersuites from draft-chudov-cryptopro-cptls
-      'GOST94-GOST89-GOST89', // TLS_GOSTR341094_WITH_28147_CNT_IMIT
-      'GOST2001-GOST89-GOST89', // TLS_GOSTR341001_WITH_28147_CNT_IMIT
-      'GOST94-NULL-GOST94', // TLS_GOSTR341094_WITH_NULL_GOSTR3411
-      'GOST2001-NULL-GOST94', // TLS_GOSTR341001_WITH_NULL_GOSTR3411
+      // 'GOST94-GOST89-GOST89', // TLS_GOSTR341094_WITH_28147_CNT_IMIT
+      // 'GOST2001-GOST89-GOST89', // TLS_GOSTR341001_WITH_28147_CNT_IMIT
+      // 'GOST94-NULL-GOST94', // TLS_GOSTR341094_WITH_NULL_GOSTR3411
+      // 'GOST2001-NULL-GOST94', // TLS_GOSTR341001_WITH_NULL_GOSTR3411
 
       // Additional Export 1024 and other cipher suites
       'EXP1024-DES-CBC-SHA', // TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA
@@ -343,12 +342,58 @@ declare module 'tlsinfo' {
       'DHE-PSK-CHACHA20-POLY1305', // TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256
       'RSA-PSK-CHACHA20-POLY1305' // TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256
     ]
+    private static suitesString: string
 
     constructor()
     constructor(options: ConnectionOptions)
-    test(): Promise<ProtocolVersionResult>
-    test(timeout: number): Promise<ProtocolVersionResult>
-    test(timeoutPerConnection: number): Promise<ProtocolVersionResult>
+    public static getCipherSuitesString(): string
+    public static getCipherSuitesString(list: string[]): string
+    /**
+     * Test executes using all supported protocols (ProtocolVersion.getSupportedProtocols())
+     * @param cipher I.e.: 'AES128-GCM-SHA256'
+     */
+    test(cipher: string): Promise<CipherResult>
+    /**
+     * @param cipher I.e.: 'AES128-GCM-SHA256'
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     */
+    test(cipher: string, protocols: string[]): Promise<CipherResult>
+    /**
+     * @param cipher I.e.: 'AES128-GCM-SHA256'
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     */
+    test(cipher: string, protocols: string[], timeout: number): Promise<CipherResult>
+    /**
+     * @param cipher I.e.: 'AES128-GCM-SHA256'
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @param ipVersions default is [4, 6]
+     */
+    test(cipher: string, protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult>
+    /**
+     * Test executes using all supported protocols (ProtocolVersion.getSupportedProtocols())
+     * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
+     */
+    testMultiple(ciphers: string[]): Promise<CipherResult[]>
+    /**
+     * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     */
+    testMultiple(ciphers: string[], protocols: string[]): Promise<CipherResult[]>
+    /**
+     * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     */
+    testMultiple(ciphers: string[], protocols: string[], timeout: number): Promise<CipherResult[]>
+    /**
+     * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
+     * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+     * @param timeout -1 is default, which means: don't change the current timeout value
+     * @param ipVersions default is [4, 6]
+     */
+    testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult>
   }
 
   export class HostAddressResult {
@@ -358,7 +403,7 @@ declare module 'tlsinfo' {
   }
 
   export class DnsHelper {
-    static lookup(host: string): Promise<{ addresses: HostAddressResult[], warnings: string[] }>
+    public static lookup(host: string): Promise<HostAddressResult[]>
   }
 
   export class HostAddressSpecificProtocolVersionResult {
@@ -394,7 +439,7 @@ declare module 'tlsinfo' {
   }
 
   export class ProtocolVersion extends TlsSocketWrapper {
-    static readonly protocols: [
+    public static readonly protocols: [
       'SSLv2',
       'SSLv3',
       'TLSv1',
@@ -409,7 +454,7 @@ declare module 'tlsinfo' {
      * @param protocol I.e.: TLSv1_2
      */
     protected static map(protocol: 'SSLv2' | 'SSLv3' | 'TLSv1' | 'TLSv1' | 'TLSv1_1' | 'TLSv1_2' | 'TLSv1_3'): 'SSLv2_method' | 'SSLv3_method' | 'TLSv1_method' | 'TLSv1_1_method' | 'TLSv1_2_method' | 'TLSv1_3_method' | ''
-    static getSupportedProtocols(): [] | [
+    public static getSupportedProtocols(): [] | [
       'SSLv3',
       'TLSv1'
     ] | [

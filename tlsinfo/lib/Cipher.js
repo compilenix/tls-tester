@@ -1,17 +1,30 @@
-const tls = require('tls')
+const tls = require('tls') // eslint-disable-line
+const crypto = require('crypto')
 
 const TlsSocketWrapper = require('./TlsSocketWrapper')
-const ProtocolVersion = require('./ProtocolVersion')
+const { DnsHelper, HostAddressResult } = require('./DnsHelper')
+
+class ProtocolVersionSpecificCipherResult {
+  constructor () {
+    this.protocol = ''
+    /** @type {HostAddressResult[]} */
+    this.enabled = []
+    /** @type {HostAddressResult[]} */
+    this.disabled = []
+    /** @type {HostAddressResult[]} */
+    this.unsupported = []
+  }
+}
 
 class CipherResult {
   constructor () {
-    this.protocol = ''
-    /** @type {string[]} */
-    this.enabled = []
-    /** @type {string[]} */
-    this.disabled = []
-    /** @type {string[]} */
-    this.unsupported = []
+    this.host = ''
+    this.port = 443
+    this.cipher = ''
+    /** @type {HostAddressResult[]} */
+    this.ipAddress = []
+    /** @type {ProtocolVersionSpecificCipherResult[]} */
+    this.protocolSpecificResults = []
   }
 }
 
@@ -21,19 +34,222 @@ class Cipher extends TlsSocketWrapper {
    */
   constructor (options = null) {
     super(options)
-    this.setTimeout((this.timeout * Cipher.suites.length) + this.timeout)
   }
 
-  async test (timeout = -1, timeoutPerConnection = -1) {
-    this.setTimeout(timeout)
+  /**
+   * @param {string[]} list
+   */
+  static getCipherSuitesString (list = []) {
+    if (list && list.length && typeof list.length === 'function' && list.length > 0) {
+      return list.join(':')
+    }
+
+    if (!Cipher.suitesString) Cipher.suitesString = Cipher.suites.join(':')
+    return Cipher.suitesString
+  }
+
+  /**
+   * @param {string} cipher I.e.: 'AES128-GCM-SHA256'
+   * @param {string[]} protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+   * @see {ProtocolVersion.setTimeout}
+   * @param {number} timeout -1 is default, which means: don't change the current timeout value
+   * @param {number[]} ipVersions default is [4, 6]
+   * @returns {Promise<CipherResult>} {CipherResult}
+   * @see {ProtocolVersion.getSupportedProtocols}
+   */
+  async test (cipher, protocols = [], timeout = -1, ipVersions = [4, 6]) {
+    const { ProtocolVersion } = require('./ProtocolVersion')
+    if (!cipher || typeof cipher !== 'string') throw new Error('cipher must be defined and type of string')
+    if (!protocols || protocols.length === 0) protocols = ProtocolVersion.getSupportedProtocols()
+    const result = new CipherResult()
+    result.cipher = cipher
+    result.host = this.options.host
+    result.port = this.options.port
+
+    try {
+      const addresses = await DnsHelper.lookup(this.options.host)
+      result.ipAddress = addresses
+    } catch (error) {
+      throw error
+    }
+
+    /** @type {ProtocolVersionSpecificCipherResult[]} */
+    const protocolSpecificResults = []
+
+    const supportedProtocolsByThisNodeVersion = ProtocolVersion.getSupportedProtocols()
+    for (const protocol of ProtocolVersion.protocols) {
+      const protocolSpecificResult = new ProtocolVersionSpecificCipherResult()
+      protocolSpecificResult.protocol = protocol
+
+      for (const address of result.ipAddress) {
+        if (!supportedProtocolsByThisNodeVersion.includes(protocol)) {
+          protocolSpecificResult.unsupported.push(address)
+          continue
+        }
+      }
+      protocolSpecificResults.push(protocolSpecificResult)
+    }
+
+    let isAnyProtocolSupported = false
+    for (const protocol of protocols) {
+      if (supportedProtocolsByThisNodeVersion.includes(protocol)) {
+        isAnyProtocolSupported = true
+        break
+      }
+    }
+    if (!isAnyProtocolSupported) {
+      throw new Error(`This version of Node.JS does not support (any of) the specified protocol/s: ${protocols}`)
+    }
 
     return new Promise(async (resolve, reject) => {
-      const result = new CipherResult()
-      // result.certificate = await this.fetch(this.timeoutPerConnection)
+      /** @type {Error[]} */
+      const hostErrors = []
+
+      for (const protocol of protocols) {
+        if (!supportedProtocolsByThisNodeVersion.includes(protocol)) continue
+        const protocolSpecificResultIndex = protocolSpecificResults.findIndex(result => result.protocol === protocol)
+        const protocolSpecificResult = protocolSpecificResults[protocolSpecificResultIndex]
+
+        this.options.secureProtocol = ProtocolVersion.map(protocol)
+        if (!this.options.secureOptions) {
+          this.options.secureOptions = crypto.constants.SSL_OP_ALL
+        } else {
+          this.options.secureOptions = 0
+        }
+
+        this.options.secureOptions |= crypto.constants.SSL_OP_NO_SSLv2
+        this.options.secureOptions |= crypto.constants.SSL_OP_NO_SSLv3
+        this.options.secureOptions |= crypto.constants.SSL_OP_NO_TLSv1
+        this.options.secureOptions |= crypto.constants.SSL_OP_NO_TLSv1_1
+        this.options.secureOptions |= crypto.constants.SSL_OP_NO_TLSv1_2
+        if (crypto.constants.SSL_OP_NO_TLSv1_3) {
+          this.options.secureOptions |= crypto.constants.SSL_OP_NO_TLSv1_3
+        }
+
+        switch (protocol) {
+          case 'SSLv2':
+            this.options.secureOptions &= ~crypto.constants.SSL_OP_NO_SSLv2
+            break
+          case 'SSLv3':
+            this.options.secureOptions &= ~crypto.constants.SSL_OP_NO_SSLv3
+            break
+          case 'TLSv1':
+            this.options.secureOptions &= ~crypto.constants.SSL_OP_NO_TLSv1
+            break
+          case 'TLSv1_1':
+            this.options.secureOptions &= ~crypto.constants.SSL_OP_NO_TLSv1_1
+            break
+          case 'TLSv1_2':
+            this.options.secureOptions &= ~crypto.constants.SSL_OP_NO_TLSv1_2
+            break
+          case 'TLSv1_3':
+            if (crypto.constants.SSL_OP_NO_TLSv1_3) {
+              this.options.secureOptions &= ~crypto.constants.SSL_OP_NO_TLSv1_3
+            }
+            break
+          default:
+            break
+        }
+
+        this.options.ciphers = cipher
+
+        try {
+          for (const hostAddress of result.ipAddress) {
+            if (!ipVersions.includes(hostAddress.family)) continue
+            this.options.host = hostAddress.address
+
+            try {
+              const supportedCiphersByThisNodeVersion = tls.getCiphers()
+              if (!supportedCiphersByThisNodeVersion.includes(cipher.toLowerCase())) {
+                protocolSpecificResult.unsupported.push(hostAddress)
+                continue
+              }
+
+              await this.connect(timeout)
+              protocolSpecificResult.enabled.push(hostAddress)
+            } catch (errors) {
+              const knownAndOkErrors = [ // these errors indicate disabled
+                'no ciphers available',
+                'wrong version number',
+                'methods disabled',
+                'unsupported protocol',
+                'socket hang up',
+                'ECONNRESET',
+                'handshake failure',
+                'dh key too small',
+                'excessive message size'
+              ]
+
+              let addHostToDisabled = false
+              for (const error of errors) {
+                let knownAndOkError = false
+                /** @type {string} */
+                const errorString = error.toString()
+                for (const knownError of knownAndOkErrors) {
+                  if (errorString.match(knownError)) {
+                    knownAndOkError = true
+                    break
+                  }
+                }
+
+                if (knownAndOkError) {
+                  addHostToDisabled = true
+                  continue
+                }
+
+                hostErrors.push(error)
+              }
+
+              if (addHostToDisabled) {
+                protocolSpecificResult.disabled.push(hostAddress)
+              }
+            }
+          }
+
+          result.protocolSpecificResults.push(protocolSpecificResult)
+        } catch (error) {
+          this.options.host = this.options.servername
+          return reject(error)
+        }
+
+        this.options.host = this.options.servername
+        hostErrors.length > 0 ? reject(hostErrors) : resolve(result)
+      }
+    })
+  }
+
+  /**
+   * @param {string[]} ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
+   * @param {string[]} protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
+   * @see {ProtocolVersion.setTimeout}
+   * @param {number} timeout -1 is default, which means: don't change the current timeout value
+   * @param {number[]} ipVersions default is [4, 6]
+   * @returns {Promise<CipherResult[]>} {CipherResult}
+   * @see {ProtocolVersion.getSupportedProtocols}
+   */
+  async testMultiple (ciphers, protocols = [], timeout = -1, ipVersions = [4, 6]) {
+    if (!ciphers || !ciphers.length || ciphers.length === 0) throw new Error('ciphers must be defined, a array / list like object and must have at least one element')
+
+    /** @type {CipherResult[]} */
+    const results = []
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        for (const cipher of ciphers) {
+          this.options.host = this.options.servername
+          const result = await this.test(cipher, protocols, timeout, ipVersions)
+          results.push(result)
+        }
+
+        resolve(results)
+      } catch (error) {
+        reject(error)
+      }
     })
   }
 }
 
+Cipher.suitesString = ''
 Cipher.suites = [
   // SSL v3.0 cipher suites
   'NULL-MD5', // SSL_RSA_WITH_NULL_MD5
@@ -109,12 +325,11 @@ Cipher.suites = [
   'DHE-RSA-SEED-SHA', // TLS_DHE_RSA_WITH_SEED_CBC_SHA
   'ADH-SEED-SHA', // TLS_DH_anon_WITH_SEED_CBC_SHA
 
-  // NOTE: this does require to set crypto.setEngine()
   // GOST ciphersuites from draft-chudov-cryptopro-cptls
-  'GOST94-GOST89-GOST89', // TLS_GOSTR341094_WITH_28147_CNT_IMIT
-  'GOST2001-GOST89-GOST89', // TLS_GOSTR341001_WITH_28147_CNT_IMIT
-  'GOST94-NULL-GOST94', // TLS_GOSTR341094_WITH_NULL_GOSTR3411
-  'GOST2001-NULL-GOST94', // TLS_GOSTR341001_WITH_NULL_GOSTR3411
+  // 'GOST94-GOST89-GOST89', // TLS_GOSTR341094_WITH_28147_CNT_IMIT
+  // 'GOST2001-GOST89-GOST89', // TLS_GOSTR341001_WITH_28147_CNT_IMIT
+  // 'GOST94-NULL-GOST94', // TLS_GOSTR341094_WITH_NULL_GOSTR3411
+  // 'GOST2001-NULL-GOST94', // TLS_GOSTR341001_WITH_NULL_GOSTR3411
 
   // Additional Export 1024 and other cipher suites
   'EXP1024-DES-CBC-SHA', // TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA
@@ -282,3 +497,5 @@ Cipher.suites = [
 ]
 
 module.exports.Cipher = Cipher
+module.exports.ProtocolVersionSpecificCipherResult = ProtocolVersionSpecificCipherResult
+module.exports.CipherResult = CipherResult

@@ -66,7 +66,7 @@ class Certificate extends TlsSocketWrapper {
       resultTemplate.port = this.options.port
 
       try {
-        const { addresses } = await DnsHelper.lookup(this.options.host)
+        const addresses = await DnsHelper.lookup(this.options.host)
         for (const address of addresses) {
           const addressResult = new HostAddressSpecificCertificateResult()
           addressResult.address = address

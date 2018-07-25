@@ -1,8 +1,8 @@
 'use-strict'
 const { ServiceAudit } = require('./lib/ServiceAudit')
 const { Certificate, CertificateResult, HostAddressSpecificCertificateResult } = require('./lib/Certificate')
-const { ProtocolVersion, HostAddressSpecificProtocolVersionResult, ProtocolVersionResult } = require('./lib/ProtocolVersion')
-const { Cipher } = require('./lib/Cipher')
+const { ProtocolVersion, ProtocolVersionResult } = require('./lib/ProtocolVersion')
+const { Cipher, CipherResult, ProtocolVersionSpecificCipherResult } = require('./lib/Cipher')
 
 module.exports = {
   ServiceAudit: ServiceAudit,
@@ -10,9 +10,10 @@ module.exports = {
   CertificateResult: CertificateResult,
   HostAddressSpecificCertificateResult: HostAddressSpecificCertificateResult,
   ProtocolVersion: ProtocolVersion,
-  HostAddressSpecificProtocolVersionResult: HostAddressSpecificProtocolVersionResult,
   ProtocolVersionResult: ProtocolVersionResult,
-  TimeOutableSocket: ProtocolVersion,
+  Cipher: Cipher,
+  ProtocolVersionSpecificCipherResult: ProtocolVersionSpecificCipherResult,
+  CipherResult: CipherResult,
   TlsSocketWrapper: ProtocolVersion,
-  Cipher: Cipher
+  TimeOutableSocket: ProtocolVersion
 }

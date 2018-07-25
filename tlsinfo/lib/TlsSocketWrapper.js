@@ -82,9 +82,11 @@ class TlsSocketWrapper extends TimeOutableSocket {
     this.setTimeout(timeout)
 
     return new Promise((resolve, reject) => {
+      let isResolved = false
       this.options.host = punycode.toASCII(this.options.host)
       this.options.servername = punycode.toASCII(this.options.servername)
       this.setSocket(tls.connect(this.options, () => {
+        isResolved = true
         if (selfdestruct) this.destroySocket()
         resolve()
       }))
@@ -96,13 +98,13 @@ class TlsSocketWrapper extends TimeOutableSocket {
       })
       this.socket.on('close', () => {
         if (selfdestruct) this.destroySocket()
+        if (!isResolved) this.errors.push(new Error('socket hang up'))
         if (this.errors.length > 0) {
           reject(this.errors)
           this.errors = []
           return
         }
         this.errors = []
-        resolve()
       })
 
       this.setKeepAlive(false)

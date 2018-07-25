@@ -14,7 +14,7 @@ class TimeOutableSocket extends events.EventEmitter {
   }
 
   destroySocket (error = null) {
-    if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
+    // if (this.socket && !this.socket.destroyed) this.socket.destroy(error)
   }
 
   /**

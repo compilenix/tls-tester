@@ -13,14 +13,12 @@ class HostAddressResult {
 class DnsHelper {
   /**
    * @param {string} host
-   * @returns {Promise<{ addresses: HostAddressResult[], warnings: string[] }>}
+   * @returns {Promise<HostAddressResult[]>}
    */
   static async lookup (host) {
     return new Promise((resolve, reject) => {
       dns.lookup(punycode.toASCII(host), { all: true }, (error, addresses) => {
-        const warnings = []
         if (error) return reject(error)
-        if (addresses.length > 1) warnings.push(`${host} resolves to more than one ip address`)
         /** @type {HostAddressResult[]} */
         const addressResult = []
         for (const address of addresses) {
@@ -30,7 +28,7 @@ class DnsHelper {
           result.family = address.family
           addressResult.push(result)
         }
-        resolve({ addresses: addressResult, warnings })
+        resolve(addressResult)
       })
     })
   }
