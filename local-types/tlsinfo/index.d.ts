@@ -59,13 +59,16 @@ declare module 'tlsinfo' {
     certificateResult: CertificateResult
   }
 
+  export class CertificateChain {
+    cert: X509
+    pem: string
+    issuer: CertificateChain
+  }
+
   export class CertificateResult {
     servername: string
     port: number
-    cert: X509
-    certPem: string
-    certCa?: X509
-    certCaPem: string
+    chain: CertificateChain
   }
 
   export class Certificate extends TlsSocketWrapper {

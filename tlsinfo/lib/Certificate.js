@@ -1,6 +1,5 @@
 const tls = require('tls') // eslint-disable-line
 const x509 = require('x509')
-const dns = require('dns') // eslint-disable-line
 
 const TlsSocketWrapper = require('./TlsSocketWrapper')
 const { DnsHelper, HostAddressResult } = require('./DnsHelper') // eslint-disable-line
@@ -14,16 +13,22 @@ class HostAddressSpecificCertificateResult {
   }
 }
 
+class CertificateChain {
+  constructor () {
+    /** @type {x509.X509} */
+    this.cert = null
+    /** @type {CertificateChain} */
+    this.issuer = null
+    this.pem = ''
+  }
+}
+
 class CertificateResult {
   constructor () {
     this.servername = ''
     this.port = 0
-    /** @type {x509.X509} */
-    this.cert = null
-    this.certPem = ''
-    /** @type {x509.X509} */
-    this.certCa = null
-    this.certCaPem = ''
+    /** @type {CertificateChain} */
+    this.chain = null
   }
 }
 
@@ -89,19 +94,43 @@ class Certificate extends TlsSocketWrapper {
           // set false to prevent socket self-destruct (default) to be able to receive peer certificates
           await this.connect(timeout, false)
 
-          const peerCertificate = this.socket.getPeerCertificate(true)
-          result.certificateResult.certPem = peerCertificate.raw.toString('base64')
-
           await new Promise((resolve, reject) => {
             try {
-              // TODO: change result.certCa into result.certChain which contains all issuer certificates sent by the server
-              if (peerCertificate.issuerCertificate) result.certificateResult.certCaPem = peerCertificate.issuerCertificate.raw.toString('base64')
-              result.certificateResult.cert = Certificate.parseRawPemCertificate(result.certificateResult.certPem)
-              if (result.certificateResult.certCaPem) result.certificateResult.certCa = Certificate.parseRawPemCertificate(result.certificateResult.certCaPem)
-              resolve()
+              const peerCertificate = this.socket.getPeerCertificate(true)
+              const subject = new CertificateChain()
+              subject.pem = peerCertificate.raw.toString('base64')
+              subject.cert = Certificate.parseRawPemCertificate(subject.pem)
+
+              let issuer = peerCertificate.issuerCertificate
+              /** @type {CertificateChain[]} */
+              const issuerChains = []
+              while (true) {
+                const nextIssuerChain = new CertificateChain()
+                nextIssuerChain.pem = issuer.raw.toString('base64')
+                nextIssuerChain.cert = Certificate.parseRawPemCertificate(nextIssuerChain.pem)
+                issuerChains.push(nextIssuerChain)
+                if (issuer.fingerprint === issuer.issuerCertificate.fingerprint) {
+                  issuer = null
+                  break
+                }
+                issuer = issuer.issuerCertificate
+              }
+
+              if (issuerChains.length > 0) {
+                subject.issuer = issuerChains.reverse().map((issuer, index) => {
+                  if (index === 0) {
+                    issuer.issuer = null
+                    return issuer
+                  }
+                  issuer.issuer = issuerChains[index - 1]
+                  return issuer
+                })[issuerChains.length - 1] // eslint-disable-line
+                result.certificateResult.chain = subject
+              }
             } catch (error) {
               reject(error)
             }
+            resolve()
           })
           this.destroySocket()
         }
