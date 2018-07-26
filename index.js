@@ -14,7 +14,7 @@ const punycode = require('./node_modules/punycode')
 const argv = require('minimist')(process.argv.slice(2))
 const uuidv4 = require('uuid/v4')
 
-const { TlsServiceAudit } = require('tlsinfo')
+const { TlsServiceAuditResult, HostAddressSpecificCertificateResult, Certificate } = require('tlsinfo')
 const Config = require('./Config.js')
 
 if (!fs.existsSync('./Config.js')) {
@@ -91,7 +91,11 @@ function overrideOptionsFromCommandLineArguments () {
       const host = domains[index]
       config.domains.push({
         host: host,
-        port: config.defaultPort || 443
+        port: config.defaultPort || 443,
+        callback: '',
+        webhook: '',
+        id: '',
+        ignore: []
       })
     }
   }
@@ -99,13 +103,11 @@ function overrideOptionsFromCommandLineArguments () {
 
 /**
  * @param {string} warning
- * @param {TlsServiceAudit} result
  */
-function isReportingEnabled (warning, result = undefined) {
+function isReportingViaConfigEnabled (warning) {
   const containsReportingPredicate = /** @param {string} x */ x => x === warning
   const isIgnoredOnAllDomains = config.ignore.some(containsReportingPredicate)
-  const isIgnoredOnThisHost = (result !== undefined && result.ignoreReports.some(containsReportingPredicate))
-  return !isIgnoredOnAllDomains && !isIgnoredOnThisHost
+  return !isIgnoredOnAllDomains
 }
 
 /**
@@ -243,7 +245,8 @@ function addMessage (message, host, port, task, level = 'error') {
         host: host,
         port: port,
         id: task.id,
-        items: [message]
+        items: [message],
+        error: ''
       }
     } else {
       taskResult.items.push(message)
@@ -269,154 +272,165 @@ function addMessage (message, host, port, task, level = 'error') {
 
 /**
  * @param {string[]} ciphers
- * @param {ServerResult} result
  * @param {string} host
  * @param {number} port
  * @param {Config.Task} task
  */
-function checkWeakCipherUsage (ciphers, result, host, port, task) {
-  if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0 && isReportingEnabled('HasCipherNULL', result)) {
+function checkWeakCipherUsage (ciphers, host, port, task) {
+  if (ciphers.findIndex(x => x.indexOf('NULL') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherNULL')) {
     addMessage(`Weak cipher usage of NULL`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('RC') >= 0) >= 0 && isReportingEnabled('HasCipherRC', result)) {
+  if (ciphers.findIndex(x => x.indexOf('RC') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherRC')) {
     addMessage(`Weak cipher usage of RC2/4/5`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('IDEA') >= 0) >= 0 && isReportingEnabled('HasCipherIDEA', result)) {
+  if (ciphers.findIndex(x => x.indexOf('IDEA') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherIDEA')) {
     addMessage(`Weak cipher usage of IDEA`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('DSS') >= 0) >= 0 && isReportingEnabled('HasCipherDSS', result)) {
+  if (ciphers.findIndex(x => x.indexOf('DSS') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherDSS')) {
     addMessage(`Weak cipher usage of DSS`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('ADH') >= 0) >= 0 && isReportingEnabled('HasCipherADH', result)) {
+  if (ciphers.findIndex(x => x.indexOf('ADH') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherADH')) {
     addMessage(`Weak cipher usage of ADH`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('CAMELLIA') >= 0) >= 0 && isReportingEnabled('HasCipherCAMELLIA', result)) {
+  if (ciphers.findIndex(x => x.indexOf('CAMELLIA') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherCAMELLIA')) {
     addMessage(`Weak cipher usage of CAMELLIA`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('SEED') >= 0) >= 0 && isReportingEnabled('HasCipherSEED', result)) {
+  if (ciphers.findIndex(x => x.indexOf('SEED') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherSEED')) {
     addMessage(`Weak cipher usage of SEED`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('AECDH') >= 0) >= 0 && isReportingEnabled('HasCipherAECDH', result)) {
+  if (ciphers.findIndex(x => x.indexOf('AECDH') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherAECDH')) {
     addMessage(`Weak cipher usage of AECDH`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('MD5') >= 0) >= 0 && isReportingEnabled('HasCipherMD5', result)) {
+  if (ciphers.findIndex(x => x.indexOf('MD5') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherMD5')) {
     addMessage(`Weak cipher usage of MD5`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('SRP') >= 0) >= 0 && isReportingEnabled('HasCipherSRP', result)) {
+  if (ciphers.findIndex(x => x.indexOf('SRP') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherSRP')) {
     addMessage(`Weak cipher usage of SRP`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('DES') >= 0) >= 0 && isReportingEnabled('HasCipherDES', result)) {
+  if (ciphers.findIndex(x => x.indexOf('DES') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherDES')) {
     addMessage(`Weak cipher usage of DES`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('3DES') >= 0) >= 0 && isReportingEnabled('HasCipherDES', result)) {
+  if (ciphers.findIndex(x => x.indexOf('3DES') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherDES')) {
     addMessage(`Weak cipher usage of 3DES`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('ARIA') >= 0) >= 0 && isReportingEnabled('HasCipherARIA', result)) {
+  if (ciphers.findIndex(x => x.indexOf('ARIA') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherARIA')) {
     addMessage(`Weak cipher usage of ARIA`, host, port, task)
   }
-  if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0 && isReportingEnabled('HasCipherPSK', result)) {
+  if (ciphers.findIndex(x => x.indexOf('PSK') >= 0) >= 0 && isReportingViaConfigEnabled('HasCipherPSK')) {
     addMessage(`Weak cipher usage of PSK`, host, port, task)
   }
-  if (ciphers.includes('AES128-SHA') && isReportingEnabled('AES128-SHA', result)) {
+  if (ciphers.includes('AES128-SHA') && isReportingViaConfigEnabled('AES128-SHA')) {
     addMessage(`Weak cipher usage of AES128-SHA`, host, port, task, 'warn')
   }
-  if (ciphers.includes('AES256-SHA') && isReportingEnabled('AES256-SHA', result)) {
+  if (ciphers.includes('AES256-SHA') && isReportingViaConfigEnabled('AES256-SHA')) {
     addMessage(`Weak cipher usage of AES256-SHA`, host, port, task, 'warn')
   }
-  if (ciphers.includes('AES128-SHA256') && isReportingEnabled('AES128-SHA256', result)) {
+  if (ciphers.includes('AES128-SHA256') && isReportingViaConfigEnabled('AES128-SHA256')) {
     addMessage(`Weak cipher usage of AES128-SHA256`, host, port, task, 'warn')
   }
-  if (ciphers.includes('AES256-SHA256') && isReportingEnabled('AES256-SHA256', result)) {
+  if (ciphers.includes('AES256-SHA256') && isReportingViaConfigEnabled('AES256-SHA256')) {
     addMessage(`Weak cipher usage of AES256-SHA256`, host, port, task, 'warn')
   }
-  if (ciphers.includes('AES256-GCM-SHA384') && isReportingEnabled('AES256-GCM-SHA384', result)) {
+  if (ciphers.includes('AES256-GCM-SHA384') && isReportingViaConfigEnabled('AES256-GCM-SHA384')) {
     addMessage(`Weak cipher usage of AES256-GCM-SHA384`, host, port, task, 'warn')
   }
-  if (ciphers.includes('AES128-GCM-SHA256') && isReportingEnabled('AES128-GCM-SHA256', result)) {
+  if (ciphers.includes('AES128-GCM-SHA256') && isReportingViaConfigEnabled('AES128-GCM-SHA256')) {
     addMessage(`Weak cipher usage of AES128-GCM-SHA256`, host, port, task, 'warn')
   }
 }
 
 /**
- * @param {ServerResult} result
- * @param {Config.Task} task
+ * @param {HostAddressSpecificCertificateResult} hostSpecificCert
+ * @param {Config.Task} hostSpecificCert
  */
-function checkServerResult (result, task) {
-  const asciiHostname = result.host
-  result.host = punycode.toUnicode(result.host)
-  const thresholdDate = moment(result.cert.notAfter).subtract(config.validUntilDays, 'days')
+function validateCertificateResult (hostSpecificCert, task) {
+  const cert = hostSpecificCert.certificateResult
+  const servername = cert.servername
+  const asciiHostname = punycode.toASCII(servername)
+  const chain = cert.chain
+  const thresholdDate = moment(chain.cert.notAfter).subtract(config.validUntilDays, 'days')
   const validUntilDaysVolaited = thresholdDate <= moment()
-  const daysDifference = Math.abs(moment(result.cert.notAfter).diff(moment(), 'days'))
+  const daysDifference = Math.abs(moment(chain.cert.notAfter).diff(moment(), 'days'))
 
-  if (validUntilDaysVolaited && isReportingEnabled('Expire', result)) {
-    addMessage(`Is valid until "${result.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, result.host, result.port, task)
+  if (validUntilDaysVolaited && isReportingViaConfigEnabled('Expire')) {
+    addMessage(`Is valid until "${chain.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, servername, cert.port, task)
   }
 
-  if (moment(result.cert.notBefore) > moment() && isReportingEnabled('NotYetValid', result)) {
-    addMessage(`Is not yet valid; notBefore ${result.cert.notBefore}`, result.host, result.port, task)
+  if (moment(chain.cert.notBefore) > moment() && isReportingViaConfigEnabled('NotYetValid')) {
+    addMessage(`Is not yet valid; notBefore ${chain.cert.notBefore}`, servername, cert.port, task)
   }
 
-  if ((!result.cert.altNames || result.cert.altNames.length === 0) && isReportingEnabled('NoAltName', result)) {
-    addMessage(`Does not have any altName`, result.host, result.port, task)
+  if ((!chain.cert.altNames || chain.cert.altNames.length === 0) && isReportingViaConfigEnabled('NoAltName')) {
+    addMessage(`Does not have any altName`, servername, cert.port, task)
   }
 
-  if (result.cert.altNames.indexOf(asciiHostname) === -1) {
-    const message = `Does not match ${result.host}. We got "${result.cert.altNames}"`
-    if ((!result.cert.altNames.some(x => x.indexOf('*') >= 0)) && isReportingEnabled('CommonNameInvalid', result)) {
-      addMessage(message, result.host, result.port, task)
+  if (chain.cert.altNames.indexOf(asciiHostname) === -1) {
+    const message = `Does not match ${servername}. We got "${chain.cert.altNames}"`
+    if ((!chain.cert.altNames.some(x => x.indexOf('*') >= 0)) && isReportingViaConfigEnabled('CommonNameInvalid')) {
+      addMessage(message, servername, cert.port, task)
     } else {
       let matchesAnyWildcard = false
-      if (result.cert.altNames.some(x => x.indexOf('*') >= 0)) {
-        for (let index = 0; index < result.cert.altNames.length; index++) {
-          const element = result.cert.altNames[index]
+      if (chain.cert.altNames.some(x => x.indexOf('*') >= 0)) {
+        for (let index = 0; index < chain.cert.altNames.length; index++) {
+          const element = chain.cert.altNames[index]
           if (matchesWildcardExpression(asciiHostname, element)) matchesAnyWildcard = true
         }
       }
 
-      if (!matchesAnyWildcard && isReportingEnabled('CommonNameInvalid', result)) addMessage(message, result.host, result.port, task)
+      if (!matchesAnyWildcard && isReportingViaConfigEnabled('CommonNameInvalid')) addMessage(message, servername, cert.port, task)
     }
   }
 
-  if (result.cert.publicKey.bitSize < 4096 && isReportingEnabled('PubKeySize', result)) {
-    addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 4096`, result.host, result.port, task, 'warn')
+  if (chain.cert.publicKey.bitSize < 4096 && isReportingViaConfigEnabled('PubKeySize')) {
+    addMessage(`Public key size of ${chain.cert.publicKey.bitSize} is < 4096`, servername, cert.port, task, 'warn')
   }
 
-  if (result.cert.signatureAlgorithm.startsWith('md') && isReportingEnabled('HasSomeMessageDigestAlgorithm', result)) {
-    addMessage(`Weak signature algorithm (md): ${result.cert.signatureAlgorithm}`, result.host, result.port, task)
+  if (chain.cert.signatureAlgorithm.startsWith('md') && isReportingViaConfigEnabled('HasSomeMessageDigestAlgorithm')) {
+    addMessage(`Weak signature algorithm (md): ${chain.cert.signatureAlgorithm}`, servername, cert.port, task)
   }
 
-  if (result.cert.signatureAlgorithm.startsWith('sha1') && isReportingEnabled('SHA1', result)) {
-    addMessage(`Weak signature algorithm (sha1): ${result.cert.signatureAlgorithm}`, result.host, result.port, task)
+  if (chain.cert.signatureAlgorithm.startsWith('sha1') && isReportingViaConfigEnabled('SHA1')) {
+    addMessage(`Weak signature algorithm (sha1): ${chain.cert.signatureAlgorithm}`, servername, cert.port, task)
   }
 
-  if (result.ciphers.SSLv3_method && isReportingEnabled('SSLv3', result)) {
-    addMessage(`Weak / Outdated protocol supported: SSLv3`, result.host, result.port, task)
-  }
-
-  if (result.ciphers.SSLv2_method && isReportingEnabled('SSLv2', result)) {
-    addMessage(`Weak / Outdated protocol supported: SSLv2`, result.host, result.port, task)
-  }
-
-  if (!result.ciphers.TLSv1_2_method && isReportingEnabled('NoTLSv1.2', result)) {
-    addMessage(`Modern protocol NOT supported: TLS 1.2`, result.host, result.port, task)
-  }
-
-  if (!result.cert.extensions.cTPrecertificateSCTs && isReportingEnabled('NoCertificateTransparency', result)) {
-    addMessage(`No Certificate Transparency`, result.host, result.port, task, 'warn')
-  }
-
-  if (result.certCa) {
-    if (result.certCa.signatureAlgorithm.startsWith('md') && isReportingEnabled('HasSomeMessageDigestAlgorithmOnCA', result)) {
-      addMessage(`Weak signature algorithm of CA (md): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port, task)
+  if (chain.issuer) {
+    if (chain.issuer.cert.signatureAlgorithm.startsWith('md') && isReportingViaConfigEnabled('HasSomeMessageDigestAlgorithmOnCA')) {
+      addMessage(`Weak signature algorithm of CA (md): ${chain.issuer.cert.signatureAlgorithm} ${chain.issuer.cert.subject.commonName}`, servername, cert.port, task)
     }
 
-    if (result.certCa.signatureAlgorithm.startsWith('sha1') && isReportingEnabled('SHA1OnCA', result)) {
-      addMessage(`Weak signature algorithm of CA (sha1): ${result.certCa.signatureAlgorithm} ${result.certCa.subject.commonName}`, result.host, result.port, task)
+    if (chain.issuer.cert.signatureAlgorithm.startsWith('sha1') && isReportingViaConfigEnabled('SHA1OnCA')) {
+      addMessage(`Weak signature algorithm of CA (sha1): ${chain.issuer.cert.signatureAlgorithm} ${chain.issuer.cert.subject.commonName}`, servername, cert.port, task)
     }
 
-    if (result.certCa.publicKey.bitSize < 2048 && isReportingEnabled('PubKeySizeOnCA', result)) {
-      addMessage(`Public key size of ${result.cert.publicKey.bitSize} is < 2048 from CA ${result.certCa.subject.commonName}`, result.host, result.port, task)
+    if (chain.issuer.cert.publicKey.bitSize < 2048 && isReportingViaConfigEnabled('PubKeySizeOnCA')) {
+      addMessage(`Public key size of ${chain.cert.publicKey.bitSize} is < 2048 from CA ${chain.issuer.cert.subject.commonName}`, servername, cert.port, task)
     }
+  }
+}
+
+/**
+ * @param {TlsServiceAuditResult} result
+ * @param {Config.Task} task
+ */
+function validateTlsServiceAuditResult (result, task) {
+  for (const cert of result.certificates) {
+    validateCertificateResult(cert, task)
+  }
+
+  if (chain.cert.ciphers.SSLv3_method && isReportingViaConfigEnabled('SSLv3')) {
+    addMessage(`Weak / Outdated protocol supported: SSLv3`, servername, cert.port, task)
+  }
+
+  if (chain.cert.ciphers.SSLv2_method && isReportingViaConfigEnabled('SSLv2')) {
+    addMessage(`Weak / Outdated protocol supported: SSLv2`, servername, cert.port, task)
+  }
+
+  if (!chain.cert.ciphers.TLSv1_2_method && isReportingViaConfigEnabled('NoTLSv1.2')) {
+    addMessage(`Modern protocol NOT supported: TLS 1.2`, servername, cert.port, task)
+  }
+
+  if (!chain.cert.extensions.cTPrecertificateSCTs && isReportingViaConfigEnabled('NoCertificateTransparency')) {
+    addMessage(`No Certificate Transparency`, servername, cert.port, task, 'warn')
   }
 
   /** @type {string[]} */
@@ -435,7 +449,7 @@ function checkServerResult (result, task) {
     ciphers[index] = ciphers[index].toUpperCase()
   }
 
-  checkWeakCipherUsage(ciphers, result, result.host, result.port, task)
+  checkWeakCipherUsage(ciphers, result.host, result.port, task)
 }
 
 /**
@@ -468,7 +482,7 @@ async function processDomain (task) {
         timeOutMs: (config.connectionTimeoutSeconds || 60) * 1000
       })
       result.ignoreReports = task.ignore || []
-      checkServerResult(result, task)
+      validateTlsServiceAuditResult(result, task)
     } catch (e) {
       let error = e
       task.host = punycode.toUnicode(task.host)
