@@ -74,6 +74,7 @@ class ProtocolVersion extends TlsSocketWrapper {
    * @param {string} protocol I.e.: TLSv1_2
    */
   static map (protocol) {
+    // TODO: move into static lookup table
     switch (protocol) {
       case 'SSLv2':
         return 'SSLv2_method'
@@ -283,6 +284,15 @@ ProtocolVersion.protocols = [
   'TLSv1_2',
   'TLSv1_3'
 ]
+
+ProtocolVersion.protocolName = {
+  SSLv2: 'SSLv2',
+  SSLv3: 'SSLv3',
+  TLSv1: 'TLSv1',
+  TLSv1_1: 'TLSv1_1',
+  TLSv1_2: 'TLSv1_2',
+  TLSv1_3: 'TLSv1_3'
+}
 
 module.exports.ProtocolVersion = ProtocolVersion
 module.exports.ProtocolVersionResult = ProtocolVersionResult

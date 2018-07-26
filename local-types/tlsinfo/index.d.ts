@@ -430,32 +430,29 @@ declare module 'tlsinfo' {
     public static lookup(host: string): Promise<HostAddressResult[]>
   }
 
-  export class HostAddressSpecificProtocolVersionResult {
-    address: HostAddressResult
-    protocol: string
-    state: boolean
-  }
-
   export class ProtocolVersionResult {
     host: string
     port: number
     ipAddress: HostAddressResult[]
+    /**
+     * Example: TLS1_2
+     */
     protocol: string
     /**
      * Protocols that are supported by the current Node.JS version and accepted by the Service
      * @see {ProtocolVersion.protocols}
      */
-    enabled: HostAddressSpecificProtocolVersionResult[]
+    enabled: HostAddressResult[]
     /**
      * Protocols that are supported by the current Node.JS version but NOT accepted by the Service
      * @see {ProtocolVersion.protocols}
      */
-    disabled: HostAddressSpecificProtocolVersionResult[]
+    disabled: HostAddressResult[]
     /**
      * Protocols that are NOT supported by the current Node.JS version
      * @see {ProtocolVersion.protocols}
      */
-    unsupported: HostAddressSpecificProtocolVersionResult[]
+    unsupported: HostAddressResult[]
     /**
      * Warnings; I.e. host has multiple ip addresses
      */
@@ -471,6 +468,14 @@ declare module 'tlsinfo' {
       'TLSv1_2',
       'TLSv1_3'
     ]
+    public static readonly protocolName: {
+      SSLv2: string
+      SSLv3: string
+      TLSv1: string
+      TLSv1_1: string
+      TLSv1_2: string
+      TLSv1_3: string
+    }
 
     constructor()
     constructor(options: ConnectionOptions)
