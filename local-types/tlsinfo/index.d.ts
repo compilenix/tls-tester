@@ -542,12 +542,16 @@ declare module 'tlsinfo' {
   }
 
   export class TlsServiceAuditResult {
-    certificate: CertificateResult
+    certificates: HostAddressSpecificCertificateResult[]
+    ciphers: CipherResult[]
+    protocols: ProtocolVersionResult[]
   }
 
   export class TlsServiceAudit extends TimeOutableSocket {
+    protected readonly options: ConnectionOptions
     constructor()
     constructor(options: ConnectionOptions)
+    updateOptions(options: ConnectionOptions): void
     run(): Promise<TlsServiceAuditResult>
     run(timeout: number): Promise<TlsServiceAuditResult>
     run(timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<TlsServiceAuditResult>

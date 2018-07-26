@@ -4,7 +4,6 @@ const {
   TlsSocketWrapper,
   DnsHelper,
   Certificate,
-  CertificateResult, // eslint-disable-line
   HostAddressSpecificCertificateResult, // eslint-disable-line
   Cipher,
   CipherResult, // eslint-disable-line
@@ -15,11 +14,11 @@ const {
 class TlsServiceAuditResult {
   constructor () {
     /** @type {HostAddressSpecificCertificateResult[]} */
-    this.certificates = null
+    this.certificates = []
     /** @type {CipherResult[]} */
-    this.ciphers = null
+    this.ciphers = []
     /** @type {ProtocolVersionResult[]} */
-    this.protocols = null
+    this.protocols = []
   }
 }
 
