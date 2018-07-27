@@ -310,7 +310,7 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
   }
 
   let color = '#d50200' // error
-  switch (level.toLowerCase()) {
+  switch (level) {
     case LOGLEVEL.Warning:
       color = '#de9e31'
       break
