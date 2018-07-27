@@ -2,6 +2,7 @@ const { TlsServiceAudit, TlsServiceAuditResult } = require('./lib/TlsServiceAudi
 const { Certificate, CertificateResult, HostAddressSpecificCertificateResult } = require('./lib/Certificate')
 const { ProtocolVersion, ProtocolVersionResult } = require('./lib/ProtocolVersion')
 const { Cipher, CipherResult, ProtocolVersionSpecificCipherResult } = require('./lib/Cipher')
+const { DnsHelper, HostAddressResult } = require('./lib/DnsHelper')
 const TlsSocketWrapper = require('./lib/TlsSocketWrapper')
 const TimeOutableSocket = require('./lib/TimeOutableSocket')
 
@@ -17,5 +18,7 @@ module.exports = {
   ProtocolVersionSpecificCipherResult: ProtocolVersionSpecificCipherResult,
   CipherResult: CipherResult,
   TlsSocketWrapper: TlsSocketWrapper,
-  TimeOutableSocket: TimeOutableSocket
+  TimeOutableSocket: TimeOutableSocket,
+  DnsHelper: DnsHelper,
+  HostAddressResult: HostAddressResult
 }
