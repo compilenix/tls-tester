@@ -413,29 +413,30 @@ function validateTlsServiceProtocolVersionResult (protoResult, task) {
   const messageTemplate = `Weak / Outdated protocol supported: ${protocol}`
 
   for (const hostAddress of protoResult.enabled) {
-    if (protocol === protocols.SSLv3 && isReportingViaConfigEnabled('SSLv3', task.ignore)) {
-      addMessage(messageTemplate, task, hostAddress)
-      continue
+    switch (protocol) {
+      case protocols.SSLv2:
+        if (isReportingViaConfigEnabled('SSLv2', task.ignore)) addMessage(messageTemplate, task, hostAddress)
+        continue
+      case protocols.SSLv3:
+        if (isReportingViaConfigEnabled('SSLv3', task.ignore)) addMessage(messageTemplate, task, hostAddress)
+        continue
+      case protocols.TLSv1:
+        if (isReportingViaConfigEnabled('TLSv1', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+        continue
+      case protocols.TLSv1_1:
+        if (isReportingViaConfigEnabled('TLSv1_1', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+        continue
     }
+  }
 
-    if (protocol === protocols.SSLv2 && isReportingViaConfigEnabled('SSLv2', task.ignore)) {
-      addMessage(messageTemplate, task, hostAddress)
-      continue
-    }
-
-    if (protocol === protocols.TLSv1 && isReportingViaConfigEnabled('TLSv1', task.ignore)) {
-      addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
-      continue
-    }
-
-    if (protocol === protocols.TLSv1_1 && isReportingViaConfigEnabled('TLSv1_1', task.ignore)) {
-      addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
-      continue
-    }
-
-    if (!(protocol === protocols.TLSv1_2) && isReportingViaConfigEnabled('NoTLSv1_2', task.ignore)) {
-      addMessage(`Modern protocol NOT supported: ${protocol}`, task, hostAddress)
-      continue
+  for (const hostAddress of protoResult.disabled) {
+    switch (protocol) {
+      case protocols.TLSv1_2:
+        if (isReportingViaConfigEnabled('NoTLSv1_2', task.ignore)) addMessage(`Modern protocol NOT supported: ${protocol}`, task, hostAddress)
+        continue
+      case protocols.TLSv1_3:
+        if (isReportingViaConfigEnabled('NoTLSv1_3', task.ignore)) addMessage(`Modern protocol NOT supported: ${protocol}`, task, hostAddress)
+        continue
     }
   }
 }
