@@ -634,7 +634,7 @@ async function handleApiRequest (request, response) {
           errorMessages.push({ message: '"callback" or "webhook" are not HTTPS. This is administratively prohibited.' })
         }
 
-        if (task.ignore && (typeof task.ignore !== 'object' || !task.ignore.length)) {
+        if (task.ignore && (typeof task.ignore !== 'object' || task.ignore.length < 0)) {
           errorMessages.push({ message: '"ignore" is defined but not a list.', possible_warnings_to_ignore: possibleToIgnoreList })
         }
 
