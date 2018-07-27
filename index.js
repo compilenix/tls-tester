@@ -18,7 +18,6 @@ const {
   TlsServiceAudit,
   TlsServiceAuditResult, // eslint-disable-line
   HostAddressSpecificCertificateResult, // eslint-disable-line
-  Certificate,
   ProtocolVersionResult, // eslint-disable-line
   ProtocolVersion,
   HostAddressResult, // eslint-disable-line
@@ -83,6 +82,10 @@ const possibleToIgnoreList = [
   'HasCipherARIA',
   'HasCipherPSK'
 ]
+const LOGLEVEL = {
+  Error: 'err',
+  Warning: 'warn'
+}
 
 function sleep (/** @type {Number} */ ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -273,8 +276,9 @@ async function sendReport (task) {
  * @param {Config.Task} task
  * @param {HostAddressResult} hostResult
  * @param {string} level
+ * @see {LOGLEVEL}
  */
-function addMessage (message, task, hostResult = null, level = 'error') {
+function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
   if (config.enableConsoleLog) {
     if (isFirstMessageOfItem) {
       let newLine = '\n'
@@ -307,7 +311,7 @@ function addMessage (message, task, hostResult = null, level = 'error') {
 
   let color = '#d50200' // error
   switch (level.toLowerCase()) {
-    case 'warn':
+    case LOGLEVEL.Warning:
       color = '#de9e31'
       break
   }
@@ -360,7 +364,7 @@ function validateCertificateResult (hostSpecificCert, task) {
   }
 
   if (chain.cert.publicKey.bitSize < 4096 && isReportingViaConfigEnabled('PubKeySize', task.ignore)) {
-    addMessage(`Public key size of ${chain.cert.publicKey.bitSize} is < 4096`, task, hostSpecificCert.address, 'warn')
+    addMessage(`Public key size of ${chain.cert.publicKey.bitSize} is < 4096`, task, hostSpecificCert.address, LOGLEVEL.Warning)
   }
 
   if (chain.cert.signatureAlgorithm.startsWith('md') && isReportingViaConfigEnabled('HasSomeMessageDigestAlgorithm', task.ignore)) {
@@ -372,7 +376,7 @@ function validateCertificateResult (hostSpecificCert, task) {
   }
 
   if (!chain.cert.extensions.cTPrecertificateSCTs && isReportingViaConfigEnabled('NoCertificateTransparency', task.ignore)) {
-    addMessage(`No Certificate Transparency`, task, hostSpecificCert.address, 'warn')
+    addMessage(`No Certificate Transparency`, task, hostSpecificCert.address, LOGLEVEL.Warning)
   }
 
   if (chain.issuer) {
@@ -411,12 +415,12 @@ function validateTlsServiceProtocolVersionResult (protoResult, task) {
     }
 
     if (protocol === protocols.TLSv1 && isReportingViaConfigEnabled('TLSv1', task.ignore)) {
-      addMessage(messageTemplate, task, hostAddress)
+      addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
       continue
     }
 
     if (protocol === protocols.TLSv1_1 && isReportingViaConfigEnabled('TLSv1_1', task.ignore)) {
-      addMessage(messageTemplate, task, hostAddress)
+      addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
       continue
     }
 
@@ -453,12 +457,12 @@ function validateTlsServiceCipherResult (cipherResult, task) {
       if (cipher.indexOf('ARIA') >= 0 && isReportingViaConfigEnabled('HasCipherARIA', task.ignore)) addMessage(messageTemplate, task, hostAddress)
       if (cipher.indexOf('PSK') >= 0 && isReportingViaConfigEnabled('HasCipherPSK', task.ignore)) addMessage(messageTemplate, task, hostAddress)
 
-      if (cipher === 'AES128-SHA' && isReportingViaConfigEnabled('AES128-SHA', task.ignore)) addMessage(messageTemplate, task, hostAddress, 'warn')
-      if (cipher === 'AES256-SHA' && isReportingViaConfigEnabled('AES256-SHA', task.ignore)) addMessage(messageTemplate, task, hostAddress, 'warn')
-      if (cipher === 'AES128-SHA256' && isReportingViaConfigEnabled('AES128-SHA256', task.ignore)) addMessage(messageTemplate, task, hostAddress, 'warn')
-      if (cipher === 'AES256-SHA256' && isReportingViaConfigEnabled('AES256-SHA256', task.ignore)) addMessage(messageTemplate, task, hostAddress, 'warn')
-      if (cipher === 'AES256-GCM-SHA384' && isReportingViaConfigEnabled('AES256-GCM-SHA384', task.ignore)) addMessage(messageTemplate, task, hostAddress, 'warn')
-      if (cipher === 'AES128-GCM-SHA256' && isReportingViaConfigEnabled('AES128-GCM-SHA256', task.ignore)) addMessage(messageTemplate, task, hostAddress, 'warn')
+      if (cipher === 'AES128-SHA' && isReportingViaConfigEnabled('AES128-SHA', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+      if (cipher === 'AES256-SHA' && isReportingViaConfigEnabled('AES256-SHA', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+      if (cipher === 'AES128-SHA256' && isReportingViaConfigEnabled('AES128-SHA256', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+      if (cipher === 'AES256-SHA256' && isReportingViaConfigEnabled('AES256-SHA256', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+      if (cipher === 'AES256-GCM-SHA384' && isReportingViaConfigEnabled('AES256-GCM-SHA384', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
+      if (cipher === 'AES128-GCM-SHA256' && isReportingViaConfigEnabled('AES128-GCM-SHA256', task.ignore)) addMessage(messageTemplate, task, hostAddress, LOGLEVEL.Warning)
     }
   }
 }
