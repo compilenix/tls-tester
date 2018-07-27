@@ -624,7 +624,7 @@ async function handleApiRequest (request, response) {
         try {
           task = Object.assign(task, JSON.parse(body))
         } catch (error) {
-          const message = JSON.stringify({ message: 'payload could not be parsed into a valid object from json string.' })
+          const message = JSON.stringify([{ message: 'payload could not be parsed into a valid object from json string.' }])
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
           response.end(`${message}\n`, 'utf8')
