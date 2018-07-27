@@ -101,7 +101,7 @@ class TlsSocketWrapper extends TimeOutableSocket {
       this.socket.on('error', error => {
         this.onError(error, reject, selfdestruct)
       })
-      this.socket.on('close', () => {
+      this.socket.once('close', () => {
         if (selfdestruct) this.destroySocket()
         if (!isResolved) this.errors.push(new Error('socket hang up'))
         if (this.errors.length > 0) {
