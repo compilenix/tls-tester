@@ -8,6 +8,14 @@ class HostAddressResult {
     this.address = ''
     this.family = 0
   }
+
+  toString () {
+    return this.address
+  }
+
+  inspect () {
+    return this.address
+  }
 }
 
 class DnsHelper {
