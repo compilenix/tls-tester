@@ -407,14 +407,14 @@ declare module 'tlsinfo' {
      * @param timeout -1 is default, which means: don't change the current timeout value
      * @param ipVersions default is [4, 6]
      */
-    testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult>
+    testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<CipherResult[]>
     /**
      * @param ciphers I.e.: [ 'AES128-GCM-SHA256', 'AES128-SHA']
      * @param protocols I.e.: [ 'TLSv1_1', 'TLSv1_2' ]. defaults to result of ProtocolVersion.getSupportedProtocols()
      * @param timeout -1 is default, which means: don't change the current timeout value
      * @param ipVersions default is [4, 6]
      */
-    testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<CipherResult>
+    testMultiple(ciphers: string[], protocols: string[], timeout: number, ipVersions: [4] | [6] | [4, 6], addresses: HostAddressResult[]): Promise<CipherResult[]>
     static filterEnabled(cipherResults: CipherResult[]): CipherResult[]
     static filterDisabled(cipherResults: CipherResult[]): CipherResult[]
     static filterUnsupported(cipherResults: CipherResult[]): CipherResult[]
@@ -557,6 +557,14 @@ declare module 'tlsinfo' {
     constructor()
     constructor(options: ConnectionOptions)
     updateOptions(options: ConnectionOptions): void
+    /**
+     * @see {ProtocolVersion.protocols}
+     */
+    setProtocols(protocols: string[]): void
+    /**
+     * @see {Cipher.suites}
+     */
+    setCiphers(ciphers: string[]): void
     run(): Promise<TlsServiceAuditResult>
     run(timeout: number): Promise<TlsServiceAuditResult>
     run(timeout: number, ipVersions: [4] | [6] | [4, 6]): Promise<TlsServiceAuditResult>
