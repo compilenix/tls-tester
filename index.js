@@ -212,8 +212,9 @@ async function sendReportWebook (uri) {
 
 /**
  * @param {Config.Task} task
+ * @param {TlsServiceAuditResult} result
  */
-async function sendReportCallback (task) {
+async function sendReportCallback (task, result) {
   const callback = new Url(task.callback)
   let requestOptions = {
     timeout: config.httpCallbackTimeout,
@@ -247,11 +248,18 @@ async function sendReportCallback (task) {
         break
     }
 
+    let prettyFormat = true
+    if (task.callbackRawResultEnabled) {
+      taskResult.callbackRawResult = result
+      prettyFormat = false
+    }
+
     req.setTimeout(config.httpCallbackTimeout)
     setTimeout(() => {
       req.emit('close')
     }, config.httpCallbackTimeout)
-    const resultText = JSON.stringify(taskResult, null, 4)
+    let resultText = ''
+    prettyFormat ? resultText = JSON.stringify(taskResult, null, 4) : resultText = JSON.stringify(taskResult)
     req.setHeader('content-type', contentTypeJson)
     req.end(`${resultText}\n`, 'utf8')
     req.once('close', () => {
@@ -265,10 +273,11 @@ async function sendReportCallback (task) {
 
 /**
  * @param {Config.Task} task
+ * @param {TlsServiceAuditResult} result
  */
-async function sendReport (task) {
-  if (task && task.callback) await sendReportCallback(task)
+async function sendReport (task, result) {
   if ((config.enableSlack && config.slackWebHookUri) || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : config.slackWebHookUri)
+  if (task && task.callback) await sendReportCallback(task, result)
 }
 
 /**
@@ -298,7 +307,7 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
         id: task.id,
         items: [message],
         error: '',
-        callbackRawResult: result
+        callbackRawResult: null
       }
     } else {
       taskResult.items.push(message)
@@ -487,6 +496,7 @@ function validateTlsServiceAuditResult (result, task) {
 
 /**
  * @param {Config.Task} task
+ * @returns {Promise<TlsServiceAuditResult>}
  */
 async function processDomain (task) {
   if (!task.host) {
@@ -500,17 +510,15 @@ async function processDomain (task) {
   isFirstMessageOfItem = true
 
   return new Promise(async (resolve, reject) => {
-    // let timeout = setTimeout(() => {
-    //   addMessage(`Connection timed-out`, task.host, task.port, task)
-    //   resolve()
-    // }, (config.connectionTimeoutSeconds || 60) * 1000)
+    /** @type {TlsServiceAuditResult} */
+    let result = null
 
     try {
       const tlsServiceAudit = new TlsServiceAudit({
         host: task.host,
         port: task.port
       })
-      const result = await tlsServiceAudit.run()
+      result = await tlsServiceAudit.run()
       validateTlsServiceAuditResult(result, task)
     } catch (e) {
       let error = e
@@ -538,8 +546,7 @@ async function processDomain (task) {
     }
 
     isFirstOveralMessage = false
-    // clearTimeout(timeout)
-    resolve()
+    resolve(result)
   })
 }
 
@@ -634,15 +641,20 @@ async function handleApiRequest (request, response) {
           errorMessages.push({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' })
         }
 
-        if (validateCallback(task.callback, request) && validateCallback(task.webhook, request)) {
-          errorMessages.push({ message: '"callback" or "webhook" are not HTTPS. This is administratively prohibited.' })
+        if ((task.callback && !validateCallback(task.callback, request)) || (task.webhook && !validateCallback(task.webhook, request))) {
+          errorMessages.push({ message: '"callback" and / or "webhook" are not HTTPS. This is administratively prohibited.' })
         }
 
         if (task.ignore && (typeof task.ignore !== 'object' || task.ignore.length < 0)) {
           errorMessages.push({ message: '"ignore" is defined but not a list.', possible_warnings_to_ignore: possibleToIgnoreList })
         }
 
-        if (typeof task.callbackRawResultEnabled !== 'boolean') {
+        // i now what i'm doing, it's OK. Trust me... not.
+        // @ts-ignore
+        if (task.callbackRawResultEnabled == 'true') task.callbackRawResultEnabled = true // eslint-disable-line
+        // @ts-ignore
+        if (task.callbackRawResultEnabled == 'false') task.callbackRawResultEnabled = false // eslint-disable-line
+        if (typeof task.callbackRawResultEnabled === 'string') {
           errorMessages.push({ message: '"callbackRawResultEnabled" has to be of type boolean.' })
         }
 
@@ -698,8 +710,8 @@ function handleApiRequestNextTick (request, response) {
     if (config.startHttpServer || config.enableConsoleLog) console.log(`running task for ${task.host}`)
     messagesToSend = []
     taskResult = null
-    await processDomain(task)
-    await sendReport(task)
+    const result = await processDomain(task)
+    await sendReport(task, result)
     messagesToSend = []
     taskResult = null
     if (config.enableConsoleLog) console.log(`number of tasks remaining: ${tasks.length}`)
@@ -719,7 +731,7 @@ function handleApiRequestNextTick (request, response) {
       tasksToEnqueue.push(task)
     }
 
-    while (tasks.length > 0 || tasksToEnqueue.length > 0 || taskRunning) {
+    while (tasks.length > 0 || tasksToEnqueue.length > 0 || taskRunning) { // eslint-disable-line no-unmodified-loop-condition
       await sleep(10)
     }
     process.exit(0)
