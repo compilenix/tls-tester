@@ -11,4 +11,3 @@ nvm --version 1>/dev/null 2>&1
 
 nvm i
 nvm run $*
-nvm use default

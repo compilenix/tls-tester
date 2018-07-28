@@ -1,0 +1,3 @@
+[submodule "deps/tlsinfo"]
+	path = deps/tlsinfo
+	url = https://git.compilenix.org/Compilenix/tlsinfo-js

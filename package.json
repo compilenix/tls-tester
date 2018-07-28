@@ -15,16 +15,18 @@
     "x509",
     "ssl"
   ],
-  "author": "compilenix@gmail.com",
+  "author": {
+    "name": "Compilenix"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://git.compilenix.org/Compilenix/tls-tester"
   },
   "dependencies": {
-    "@types/node": "^9",
-    "@types/tlsinfo": "file:local-types/tlsinfo",
-    "@types/x509": "file:local-types/x509",
+    "@types/tlsinfo": "file:deps/tlsinfo/types/tlsinfo",
+    "@types/x509": "file:deps/tlsinfo/types/x509",
+    "tlsinfo": "file:deps/tlsinfo",
     "fs-extra": "7.0.0",
     "lodash": "4.17.10",
     "minimist": "1.2.0",
@@ -35,7 +37,6 @@
     "semver": "^5.5.0",
     "slack-node": "0.1.8",
     "sslinfo": "0.2.0",
-    "tlsinfo": "file:tlsinfo",
     "uuid": "3.3.2",
     "x509": "0.3.3"
   },
