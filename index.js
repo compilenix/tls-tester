@@ -725,7 +725,7 @@ function handleApiRequestNextTick (request, response) {
     if (os.platform() === 'linux') fqdn = execSync('hostname -f').toLocaleString().trim()
     fqdn = fqdn.length > 0 ? fqdn : os.hostname()
     console.log(`http server started: http://${fqdn}:${config.httpServerPort}/`)
-    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: ${contentTypeJson}' --data '{"host":"mozilla-old.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${fqdn}:${config.httpServerPort}/api/enqueue`)
+    if (config.enableConsoleLog) console.log(`# curl -v -H 'content-type: ${contentTypeJson}' --data '{"host":"expired.badssl.com","callback":"https://your-server.local/tls-tester-result"}' http://${fqdn}:${config.httpServerPort}/api/enqueue`)
   } else if (config.enableConsoleLog || (config.enableSlack && config.slackWebHookUri)) {
     for (const task of config.domains) {
       if (config.enableSlack && config.slackWebHookUri && !task.webhook) task.webhook = config.slackWebHookUri
