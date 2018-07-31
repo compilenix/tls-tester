@@ -11,6 +11,7 @@ git submodule update
 pushd deps/tlsinfo
 git submodule init
 git submodule update
+npm install
 popd
 npm install
 npm rebuild

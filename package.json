@@ -26,13 +26,13 @@
   "dependencies": {
     "@types/tlsinfo": "file:deps/tlsinfo/types/tlsinfo",
     "@types/x509": "file:deps/tlsinfo/types/x509",
-    "tlsinfo": "file:deps/tlsinfo",
     "fs-extra": "7.0.0",
     "minimist": "1.2.0",
     "moment": "2.22.2",
     "punycode": "2.1.1",
     "semver": "^5.5.0",
     "slack-node": "0.1.8",
+    "tlsinfo": "file:deps/tlsinfo",
     "uuid": "3.3.2"
   },
   "devDependencies": {

@@ -1,5 +1,3 @@
-/// <reference path="typings/index.d.ts"/>
-
 const http = require('http')
 const url = require('url')
 const { URL: Url } = url
@@ -7,11 +5,13 @@ const argv = require('minimist')(process.argv.slice(2))
 
 const fs = require('fs-extra')
 
-if (!fs.existsSync('./config.js')) {
-  fs.copySync('./config.example.js', './config.js')
+if (!fs.existsSync('./Config.js')) {
+  fs.copySync('./Config.example.js', './Config.js')
 }
 
-let config = require('./config.js')
+const Config = require('./Config.js')
+
+let config = Config.Config
 
 function overrideOptionsFromCommandLineArguments () {
   if (process.argv.length < 3) return

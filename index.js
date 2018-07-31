@@ -25,11 +25,11 @@ const {
   CipherResult // eslint-disable-line
 } = require('tlsinfo')
 
-const Config = require('./Config.js')
-
 if (!fs.existsSync('./Config.js')) {
   fs.copySync('./Config.example.js', './Config.js')
 }
+
+const Config = require('./Config.js')
 
 let config = Config.Config
 let slack = new Slack()
