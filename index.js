@@ -646,8 +646,22 @@ async function handleApiRequest (request, response) {
           errorMessages.push({ message: '"callback" and / or "webhook" are not HTTPS. This is administratively prohibited.' })
         }
 
-        if (task.ignore && (typeof task.ignore !== 'object' || task.ignore.length < 0)) {
+        if (task.ignore &&
+          (
+            typeof task.ignore !== 'object' ||
+            typeof task.ignore.length !== 'number'
+          )
+        ) {
           errorMessages.push({ message: '"ignore" is defined but not a list.', possible_warnings_to_ignore: possibleToIgnoreList })
+        }
+
+        if (task.ignore && task.ignore.length && typeof task.ignore.length === 'number') {
+          let unknowns = []
+          for (const ignores of task.ignore) {
+            if (!possibleToIgnoreList.includes(ignores)) unknowns.push(ignores)
+          }
+
+          if (unknowns.length > 0) errorMessages.push({ message: '"ignore" does include values which are not known', unknown_ignore_values: unknowns, possible_warnings_to_ignore: possibleToIgnoreList })
         }
 
         // i now what i'm doing, it's OK. Trust me... not.
