@@ -201,13 +201,17 @@ async function sendReportWebook (uri) {
 
   for (let index = 0; index < payloads.length; index++) {
     const payload = payloads[index]
-    slack.webhook(payload, (err, response) => {
-      if (err) console.log(err, response)
-    })
+    try {
+      slack.webhook(payload, (err, response) => {
+        if (err) console.log(err, response)
+      })
+    } catch (error) {
+      // ignore
+    }
     await sleep(1000)
   }
 
-  slack.setWebhook(config.slackWebHookUri)
+  slack.setWebhook('')
 }
 
 /**
@@ -276,7 +280,7 @@ async function sendReportCallback (task, result) {
  * @param {TlsServiceAuditResult} result
  */
 async function sendReport (task, result) {
-  if ((config.enableSlack && config.slackWebHookUri) || task.webhook) await sendReportWebook(task && task.webhook ? task.webhook : config.slackWebHookUri)
+  if (task && config.enableSlack && task.webhook) await sendReportWebook(task.webhook)
   if (task && task.callback) await sendReportCallback(task, result)
 }
 
@@ -336,6 +340,8 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
  * @param {Config.Task} task
  */
 function validateCertificateResult (hostSpecificCert, task) {
+  if (typeof task.host !== 'string') return
+
   const cert = hostSpecificCert.certificateResult
   const asciiHostname = punycode.toASCII(task.host)
   const chain = cert.chain
@@ -500,7 +506,7 @@ function validateTlsServiceAuditResult (result, task) {
  * @returns {Promise<TlsServiceAuditResult>}
  */
 async function processDomain (task) {
-  if (!task.host) {
+  if (!task || !task.host || typeof task.host !== 'string') {
     addMessage(`host not defined for ${task}`, task)
     return
   }
@@ -515,6 +521,7 @@ async function processDomain (task) {
     let result = null
 
     try {
+      if (typeof task.host !== 'string') throw new Error(`"host" is not typeof string => ${typeof task.host}`)
       const tlsServiceAudit = new TlsServiceAudit({
         host: task.host,
         port: task.port
@@ -633,10 +640,6 @@ async function handleApiRequest (request, response) {
         }
         const errorMessages = []
 
-        if (!task.host || typeof task.host !== 'string' || task.host.trim().length < 3) {
-          errorMessages.push({ message: '"host" must be defined and a string of minimal 3 chars.' })
-        }
-
         if ((!task.callback || typeof task.callback !== 'string' || task.callback.trim().length < 10) &&
               (!task.webhook || typeof task.webhook !== 'string' || task.webhook.trim().length < 10)) {
           errorMessages.push({ message: 'both, "callback" and "webhook" are not defined. so this would be not returning the result to anyone.' })
@@ -673,6 +676,13 @@ async function handleApiRequest (request, response) {
           errorMessages.push({ message: '"callbackRawResultEnabled" has to be of type boolean.' })
         }
 
+        const isValidSingleHost = task.host && typeof task.host === 'string' && task.host.trim().length >= 3
+        const isValidMultiHost = task.host instanceof Array && task.host.length > 0 && task.host.every(value => typeof value === 'string' && value.trim().length >= 3)
+
+        if (!isValidSingleHost && !isValidMultiHost) {
+          errorMessages.push({ message: '"host" must be defined and a string of minimal 3 chars. OR a string array, larger than 0 and containing only strings with a minimal length on 3 chars.' })
+        }
+
         if (errorMessages.length > 0) {
           response.statusCode = 400
           response.setHeader('content-type', contentTypeJson)
@@ -680,12 +690,35 @@ async function handleApiRequest (request, response) {
           return resolve()
         }
 
-        task.id = uuidv4()
-        const message = JSON.stringify([{ message: 'OK', id: task.id }])
+        let message = ''
+        if (isValidMultiHost) {
+          let multiTaskInstances = []
+          for (const host of task.host) {
+            multiTaskInstances.push({
+              id: uuidv4(),
+              host: host,
+              port: task.port || config.defaultPort || 443,
+              callback: task.callback,
+              webhook: task.webhook,
+              ignore: task.ignore,
+              callbackRawResultEnabled: task.callbackRawResultEnabled
+            })
+          }
+
+          message = JSON.stringify([{ message: 'OK', task: multiTaskInstances }])
+          for (const multiTaskInstance of multiTaskInstances) {
+            tasks.push(multiTaskInstance)
+          }
+        } else { // isValidSingleHost
+          task.id !== '' ? task.id = task.id : uuidv4()
+          message = JSON.stringify([{ message: 'OK', task: task }])
+          tasks.push(task)
+        }
+
         response.statusCode = 200
         response.setHeader('content-type', contentTypeJson)
         response.end(`${message}\n`, 'utf8')
-        tasks.push(task)
+
         const clientAddress = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'] : request.connection.remoteAddress
         const logCallbackUrl = task.callback ? ` with callback ${task.callback}` : ''
         const logWebookUrl = task.webhook ? ` with webook ${task.webhook}` : ''

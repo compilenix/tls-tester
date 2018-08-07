@@ -75,6 +75,7 @@ class Config {
 
 class Task {
   constructor () {
+    /** @type {string | string[]} */
     this.host = ''
     this.port = 443
     /** @type {string[]} */
