@@ -307,11 +307,11 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
       console.log(`${newLine}${task.host}:${task.port}`)
     }
 
-    console.log(`[${new Date().toUTCString()}] ${hostResult === null ? `` : `${hostResult} -> `}${message}`)
+    console.log(`[${new Date().toUTCString()}] ${hostResult === null ? `` : `${hostResult} -> `}${message.replace(/@channel /, '')}`)
     isFirstMessageOfItem = false
   }
 
-  let messageItem = `${hostResult === null ? `` : `${hostResult} -> `}${message}`
+  let messageItem = `${hostResult === null ? `` : `${hostResult} -> `}${message.replace(/@channel /, '')}`
   if (task && task.callback) {
     if (taskResult === null) {
       taskResult = {
@@ -357,22 +357,34 @@ function validateCertificateResult (hostSpecificCert, task) {
   const chain = cert.chain
   const thresholdDate = moment(chain.cert.notAfter).subtract(config.validUntilDays, 'days')
   const validUntilDaysVolaited = thresholdDate <= moment()
-  const daysDifference = Math.abs(moment(chain.cert.notAfter).diff(moment(), 'days'))
+  const daysDifference = moment(chain.cert.notAfter).diff(moment(), 'days')
 
   if (validUntilDaysVolaited && isReportingViaConfigEnabled('Expire', task.ignore)) {
-    addMessage(`Is valid until "${chain.cert.notAfter}" and therefore volates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, task, hostSpecificCert.address)
+    // addMessage(`Certificate is valid until "${chain.cert.notAfter}" and therefore violates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, task, hostSpecificCert.address)
+    if (daysDifference < 0) {
+      addMessage(`Certificate has expired on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
+    }
+    if (daysDifference > 3) {
+      addMessage(`Certificate expires in ${daysDifference} days on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
+    }
+    if (daysDifference <= 3 && daysDifference > 0) {
+      addMessage(`@channel Certificate expires in ${daysDifference} days on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
+    }
+    if (daysDifference === 0) {
+      addMessage(`Certificate is valid until "${chain.cert.notAfter}" and expires TODAY`, task, hostSpecificCert.address)
+    }
   }
 
   if (moment(chain.cert.notBefore) > moment() && isReportingViaConfigEnabled('NotYetValid', task.ignore)) {
-    addMessage(`Is not yet valid; notBefore ${chain.cert.notBefore}`, task, hostSpecificCert.address)
+    addMessage(`Certificate is not yet valid; not before ${chain.cert.notBefore}`, task, hostSpecificCert.address)
   }
 
   if ((!chain.cert.altNames || chain.cert.altNames.length === 0) && isReportingViaConfigEnabled('NoAltName', task.ignore)) {
-    addMessage(`Does not have any altName`, task, hostSpecificCert.address)
+    addMessage(`Certificate does not have any altName`, task, hostSpecificCert.address)
   }
 
   if (chain.cert.altNames.indexOf(asciiHostname) === -1) {
-    const message = `Does not match ${task.host}. We got "${chain.cert.altNames}"`
+    const message = `Certificate does not match ${task.host}. We got "${chain.cert.altNames}"`
     if ((!chain.cert.altNames.some(x => x.indexOf('*') >= 0)) && isReportingViaConfigEnabled('CommonNameInvalid', task.ignore)) {
       addMessage(message, task, hostSpecificCert.address)
     } else {
@@ -389,15 +401,15 @@ function validateCertificateResult (hostSpecificCert, task) {
   }
 
   if (chain.cert.publicKey.bitSize < 4096 && isReportingViaConfigEnabled('PubKeySize', task.ignore)) {
-    addMessage(`Public key size of ${chain.cert.publicKey.bitSize} is < 4096`, task, hostSpecificCert.address, LOGLEVEL.Warning)
+    addMessage(`Certificate public key size of ${chain.cert.publicKey.bitSize} is < 4096`, task, hostSpecificCert.address, LOGLEVEL.Warning)
   }
 
   if (chain.cert.signatureAlgorithm.startsWith('md') && isReportingViaConfigEnabled('HasSomeMessageDigestAlgorithm', task.ignore)) {
-    addMessage(`Weak signature algorithm (md): ${chain.cert.signatureAlgorithm}`, task, hostSpecificCert.address)
+    addMessage(`Certificate weak signature algorithm (md): ${chain.cert.signatureAlgorithm}`, task, hostSpecificCert.address)
   }
 
   if (chain.cert.signatureAlgorithm.startsWith('sha1') && isReportingViaConfigEnabled('SHA1', task.ignore)) {
-    addMessage(`Weak signature algorithm (sha1): ${chain.cert.signatureAlgorithm}`, task, hostSpecificCert.address)
+    addMessage(`Certificate weak signature algorithm (sha1): ${chain.cert.signatureAlgorithm}`, task, hostSpecificCert.address)
   }
 
   if (!chain.cert.extensions.cTPrecertificateSCTs && isReportingViaConfigEnabled('NoCertificateTransparency', task.ignore)) {
@@ -406,15 +418,15 @@ function validateCertificateResult (hostSpecificCert, task) {
 
   if (chain.issuer) {
     if (chain.issuer.cert.signatureAlgorithm.startsWith('md') && isReportingViaConfigEnabled('HasSomeMessageDigestAlgorithmOnCA', task.ignore)) {
-      addMessage(`Weak signature algorithm of CA (md): ${chain.issuer.cert.signatureAlgorithm} ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
+      addMessage(`Certificate weak signature algorithm of issuer (md): ${chain.issuer.cert.signatureAlgorithm} ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
     }
 
     if (chain.issuer.cert.signatureAlgorithm.startsWith('sha1') && isReportingViaConfigEnabled('SHA1OnCA', task.ignore)) {
-      addMessage(`Weak signature algorithm of CA (sha1): ${chain.issuer.cert.signatureAlgorithm} ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
+      addMessage(`Certificate weak signature algorithm of issuer (sha1): ${chain.issuer.cert.signatureAlgorithm} ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
     }
 
     if (chain.issuer.cert.publicKey.bitSize < 2048 && isReportingViaConfigEnabled('PubKeySizeOnCA', task.ignore)) {
-      addMessage(`Public key size of ${chain.cert.publicKey.bitSize} is < 2048 from CA ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
+      addMessage(`Certificate public key size of ${chain.cert.publicKey.bitSize} is < 2048 from issuer ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
     }
   }
 }
