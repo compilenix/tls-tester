@@ -90,8 +90,7 @@ class Task {
 class TaskResult {
   constructor () {
     this.id = ''
-    /** @type {HostAddressResult} */
-    this.host = null
+    this.host = ''
     this.port = 443
     /** @type {string[]} */
     this.items = []

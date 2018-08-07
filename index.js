@@ -303,18 +303,19 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
     isFirstMessageOfItem = false
   }
 
+  let messageItem = `${hostResult === null ? `` : `${hostResult} -> `}${message}`
   if (task && task.callback) {
     if (taskResult === null) {
       taskResult = {
-        host: hostResult,
+        host: hostResult.host,
         port: task.port,
         id: task.id,
-        items: [message],
+        items: [messageItem],
         error: '',
         callbackRawResult: null
       }
     } else {
-      taskResult.items.push(message)
+      taskResult.items.push(messageItem)
     }
   }
 
@@ -322,6 +323,7 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
     return
   }
 
+  messageItem = `${task.host}:${task.port} ${hostResult === null ? `` : `(${hostResult}) -> `}${message}`
   let color = '#d50200' // error
   switch (level) {
     case LOGLEVEL.Warning:
@@ -329,7 +331,7 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
       break
   }
   messagesToSend.push({
-    message: `${task.host}:${task.port} ${hostResult === null ? `` : `(${hostResult}) -> `}${message}\n`,
+    message: `${messageItem}\n`,
     ts: Date.now() / 1000,
     color: color
   })
