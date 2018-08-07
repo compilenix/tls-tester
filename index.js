@@ -710,7 +710,7 @@ async function handleApiRequest (request, response) {
             tasks.push(multiTaskInstance)
           }
         } else { // isValidSingleHost
-          task.id !== '' ? task.id = task.id : uuidv4()
+          task.id !== '' ? task.id = task.id : task.id = uuidv4()
           message = JSON.stringify([{ message: 'OK', task: task }])
           tasks.push(task)
         }
