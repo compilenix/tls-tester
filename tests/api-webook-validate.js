@@ -21,7 +21,6 @@ let request = {
 function validateCallback (url = '', request) {
   if (!url) return false
   // if (!(request instanceof http.IncomingMessage) || !request.socket.remoteAddress) return false
-  if (!request.socket.remoteAddress) return false
   if (url.trim().length < 10) return false
   if (config.httpsCallbacksOnly && !url.startsWith('https://')) {
     if (!url.startsWith('http://')) return false
@@ -32,7 +31,9 @@ function validateCallback (url = '', request) {
     }
     return false
   }
-  if (!url.startsWith('https://')) return false
+  if (config.httpsCallbacksOnly && url.startsWith('https://')) return true
+  if (!config.httpsCallbacksOnly && (url.startsWith('https://') || url.startsWith('http://'))) return true
+  if (!url.startsWith('http://')) return false
   return true // Is OK
 }
 
@@ -45,7 +46,7 @@ assert.strictEqual(validateCallback('https://10.6.9.240/ldjfksjdf', request), tr
 
 config.httpsCallbacksOnly = false
 assert.strictEqual(validateCallback('ftp://compilenix.org/ldjfksjdf', request), false)
-assert.strictEqual(validateCallback('http://compilenix.org/ldjfksjdf', request), false)
+assert.strictEqual(validateCallback('http://compilenix.org/ldjfksjdf', request), true)
 assert.strictEqual(validateCallback('https://compilenix.org/ldjfksjdf', request), true)
 
 config.httpsCallbacksOnly = true
@@ -56,15 +57,24 @@ assert.strictEqual(validateCallback('https://10.6.9.240/ldjfksjdf', request), tr
 assert.strictEqual(validateCallback('http://0.0.0.0/ldjfksjdf', request), true)
 assert.strictEqual(validateCallback('https://0.0.0.0/ldjfksjdf', request), true)
 
+request.socket.remoteAddress = '10.6.9.241'
+assert.strictEqual(validateCallback('ftp://10.6.9.240/ldjfksjdf', request), false)
+assert.strictEqual(validateCallback('http://10.6.9.240/ldjfksjdf', request), false)
+assert.strictEqual(validateCallback('https://10.6.9.240/ldjfksjdf', request), true)
+assert.strictEqual(validateCallback('http://0.0.0.0/ldjfksjdf', request), false)
+assert.strictEqual(validateCallback('https://0.0.0.0/ldjfksjdf', request), true)
+
 config.httpCallbacksAllowedFrom = []
 config.httpCallbacksAllowedTo.push('slack.com')
 assert.strictEqual(validateCallback('ftp://compilenix.slack.com/ldjfksjdf', request), false)
 assert.strictEqual(validateCallback('http://compilenix.slack.com/ldjfksjdf', request), true)
+assert.strictEqual(validateCallback('http://compilenix.org/ldjfksjdf', request), false)
 assert.strictEqual(validateCallback('https://compilenix.slack.com/ldjfksjdf', request), true)
 
 config.httpCallbacksAllowedTo.push(/.*\.?lala\.net\//i)
 assert.strictEqual(validateCallback('ftp://compilenix.slack.com/ldjfksjdf', request), false)
 assert.strictEqual(validateCallback('http://compilenix.slack.com/ldjfksjdf', request), true)
+assert.strictEqual(validateCallback('https://compilenix.slack.com/ldjfksjdf', request), true)
 assert.strictEqual(validateCallback('http://compilenix.org/ldjfksjdf', request), false)
 assert.strictEqual(validateCallback('https://compilenix.lala.net/ldjfksjdf', request), true)
 assert.strictEqual(validateCallback('http://compilenix.lala.net/ldjfksjdf', request), true)
