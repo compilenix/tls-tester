@@ -32,7 +32,7 @@ A request MUST have at least this properties:
   "host": "fqdn"
 }
 ```
-And at least one of `"callback": "https://callbackUrl"` OR `"webhook": "https://webhookUrl"`.
+**And** at least one of `"callback": "https://callbackUrl"` OR `"webhook": "https://webhookUrl"`.
 
 `callback` and `webhook` must be HTTPS, if not disabled via config. (see option: `httpsCallbacksOnly` at `Config.example.js`)
 
