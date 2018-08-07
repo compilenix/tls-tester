@@ -5,13 +5,17 @@ export NVM_DIR="$(realpath $HOME/.nvm)"
   echo "you need nvm (https://github.com/creationix/nvm)"; exit 1
 }
 
+rm -r \
+  node_modules \
+  deps/*/node_modules \
+
 nvm i
 git submodule init
 git submodule update
 pushd deps/tlsinfo
+nvm i
 git submodule init
 git submodule update
-npm install
 popd
-npm install
-npm rebuild
+nvm i
+node ./npmInstall.js
