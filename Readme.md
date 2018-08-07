@@ -54,7 +54,7 @@ Following is a example response body:
 [{
   "message": "OK",
   "task": {
-    "id": "e0420ccf-b27e-4a26-8725-9b109803e7e7",
+    "id": "some id", // this property could look like "e0420ccf-b27e-4a26-8725-9b109803e7e7" if it was undefined by the request
     "host": "mozilla-old.badssl.com",
     "port": 443,
     "callback": "https://example.local/tls-test-result",
@@ -99,30 +99,38 @@ A example response body could look like this:
 
 `webhook` is compatible with services like: [Slack Incoming Webhooks](https://api.slack.com/incoming-webhooks) and [Mattermost Incoming Webhooks](https://docs.mattermost.com/developer/webhooks-incoming.html)
 
-`callback` is a simple http/s callback. Here is a callback request example:
-```text
-POST /tls-test-result HTTP/1.1
-Host: example.local
-content-type: application/json; charset=utf8
-Connection: close
-Content-Length: 565
-
+`callback` is a simple http/s callback. Here is a callback request example (method is always `POST` and `content-type` is `application/json; charset=utf8`):
+```json
 {
-    "id": "dcc9d880-5277-435d-981a-5ff6a5df6442",
-    "host": "mozilla-old.badssl.com",
+    "host": "www.microsoft.com",
     "port": 443,
+    "id": "f3056762-05de-4aae-99f5-875424a5a652",
     "items": [
-        "Public key size of 2048 is < 4096",
-        "Weak cipher usage of CAMELLIA",
-        "Weak cipher usage of SEED",
-        "Weak cipher usage of DES"
-    ]
+        "23.58.217.29 -> No Certificate Transparency",
+        "23.58.217.29 -> Public key size of 2048 is < 4096",
+        "23.58.217.29 -> Weak / Outdated protocol supported: TLSv1",
+        "23.58.217.29 -> Weak / Outdated protocol supported: TLSv1_1",
+        "23.58.217.29 -> Weak cipher usage of TLSv1_1 -> AES128-SHA",
+        "23.58.217.29 -> Weak cipher usage of TLSv1_2 -> AES256-GCM-SHA384",
+        "2a02:26f0:ce:184::356e -> No Certificate Transparency",
+        "2a02:26f0:ce:184::356e -> Public key size of 2048 is < 4096",
+        "2a02:26f0:ce:184::356e -> Weak / Outdated protocol supported: TLSv1",
+        "2a02:26f0:ce:184::356e -> Weak / Outdated protocol supported: TLSv1_1",
+        "2a02:26f0:ce:184::356e -> Weak cipher usage of TLSv1 -> AES128-SHA",
+        "2a02:26f0:ce:184::356e -> Weak cipher usage of TLSv1_2 -> AES128-SHA",
+        "2a02:26f0:ce:18d::356e -> No Certificate Transparency",
+        "2a02:26f0:ce:18d::356e -> Public key size of 2048 is < 4096",
+        "2a02:26f0:ce:18d::356e -> Weak / Outdated protocol supported: TLSv1",
+        "2a02:26f0:ce:18d::356e -> Weak / Outdated protocol supported: TLSv1_1"
+    ],
+    "error": "",
+    "callbackRawResult": null
 }
 ```
 
 When a error occures, the `callback` or `webhook` might not be invoked / completed.
 
-`callbackRawResultEnabled` is set to `false` by default. Setting it to `true` will only have a effect if `callback` is defined and valid. `callbackRawResultEnabled` changes the callback POST to include the property `callbackRawResult`.
+`callbackRawResultEnabled` is set to `false` by default. Setting it to `true` will only have a effect if `callback` is defined and is valid. `callbackRawResultEnabled` changes the callback POST to include the property `callbackRawResult`.
 
 `callbackRawResult` is an instance of `TlsServiceAuditResult` which is documented at [compilenix/types -> /tlsinfo/index.d.ts](https://git.compilenix.org/Compilenix/types/blob/525275ec07db09709f07586913d4a1cd8b7e8dfe/tlsinfo/index.d.ts#L549).
 
