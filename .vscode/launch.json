@@ -19,6 +19,13 @@
       "name": "Launch Program",
       "program": "${workspaceFolder}/index.js",
       "runtimeExecutable": "${workspaceRoot}/node.sh"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch test",
+      "program": "${workspaceFolder}/tests/api-webook-validate.js",
+      "runtimeExecutable": "${workspaceRoot}/node.sh"
     }
   ]
 }

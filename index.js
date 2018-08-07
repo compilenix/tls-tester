@@ -597,7 +597,8 @@ function validateCallback (url = '', request) {
     }
     return false
   }
-  if (!config.httpsCallbacksOnly && url.startsWith('https://')) return true
+  if (config.httpsCallbacksOnly && url.startsWith('https://')) return true
+  if (!config.httpsCallbacksOnly && (url.startsWith('https://') || url.startsWith('http://'))) return true
   if (!url.startsWith('http://')) return false
   return true // Is OK
 }
