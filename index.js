@@ -360,7 +360,6 @@ function validateCertificateResult (hostSpecificCert, task) {
   const daysDifference = moment(chain.cert.notAfter).diff(moment(), 'days')
 
   if (validUntilDaysVolaited && isReportingViaConfigEnabled('Expire', task.ignore)) {
-    // addMessage(`Certificate is valid until "${chain.cert.notAfter}" and therefore violates the threshold of ${config.validUntilDays}. days difference to expiration date: ${daysDifference} days`, task, hostSpecificCert.address)
     if (daysDifference < 0) {
       addMessage(`Certificate has expired on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
     }
