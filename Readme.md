@@ -21,7 +21,7 @@ node index.js --enableSlack false --domains www.microsoft.com,expired.badssl.com
 ## Use as a Service
 * Edit Config.js: set `startHttpServer` to `true` or overwride the option using the [CLI](#cli)
 * `npm start`
-* `curl -v -H 'content-type: application/json; charset=utf8' --data '{ "host": "mozilla-old.badssl.com", "callback":"http://callbackUrl" }' http://localhost:16636/api/enqueue`
+* `curl -v -H 'content-type: application/json; charset=utf8' --data '{ "host": "mozilla-old.badssl.com", "callback":"https://callbackUrl" }' http://localhost:16636/api/enqueue`
 
 ### Add a task to the queue
 A request path MUST be `/api/enqueue`<br/>
