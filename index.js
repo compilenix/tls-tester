@@ -170,6 +170,12 @@ async function sendReportWebook (uri) {
 
   let payloads = []
   let attachments = []
+  messagesToSend = messagesToSend.sort((one, two) => {
+    if (one.message < two.message) return -1
+    if (one.message > two.message) return 1
+    return 0
+  })
+
   for (let index = 0; index < messagesToSend.length; index++) {
     const { message, ts, color } = messagesToSend[index]
     const attachment = {
@@ -257,6 +263,8 @@ async function sendReportCallback (task, result) {
       taskResult.callbackRawResult = result
       prettyFormat = false
     }
+
+    taskResult.items = taskResult.items.sort()
 
     req.setTimeout(config.httpCallbackTimeout)
     setTimeout(() => {
