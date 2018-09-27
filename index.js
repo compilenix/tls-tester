@@ -230,7 +230,7 @@ async function sendReportWebook (task) {
     await sendWebook(payload)
   }
 
-  if (task.callbackInvokeForced) {
+  if (task.callbackInvokeForced && payloads.length === 0) {
     const payload = Object.assign({}, payloadTemplate)
     const attachment = Object.assign({}, attachmentTemplate)
 
