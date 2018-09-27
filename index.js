@@ -387,16 +387,16 @@ function validateCertificateResult (hostSpecificCert, task) {
 
   if (validUntilDaysVolaited && isReportingViaConfigEnabled('Expire', task.ignore)) {
     if (daysDifference < 0) {
-      addMessage(`Certificate has expired on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
+      addMessage(`Certificate has expired on "${chain.cert.notAfter.toUTCString()}"`, task, hostSpecificCert.address)
     }
     if (daysDifference > 3) {
-      addMessage(`Certificate expires in ${daysDifference} days on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
+      addMessage(`Certificate expires in ${daysDifference} days on "${chain.cert.notAfter.toUTCString()}"`, task, hostSpecificCert.address)
     }
     if (daysDifference <= 3 && daysDifference > 0) {
-      addMessage(`@channel Certificate expires in ${daysDifference} days on "${chain.cert.notAfter}"`, task, hostSpecificCert.address)
+      addMessage(`@channel Certificate expires in ${daysDifference} days on "${chain.cert.notAfter.toUTCString()}"`, task, hostSpecificCert.address)
     }
     if (daysDifference === 0) {
-      addMessage(`Certificate is valid until "${chain.cert.notAfter}" and expires TODAY`, task, hostSpecificCert.address)
+      addMessage(`Certificate is valid until "${chain.cert.notAfter.toUTCString()}" and expires TODAY`, task, hostSpecificCert.address)
     }
   }
 
