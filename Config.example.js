@@ -84,6 +84,7 @@ class Task {
     this.webhook = ''
     this.callback = ''
     this.callbackRawResultEnabled = false
+    this.callbackInvokeForced = false
   }
 }
 

@@ -33,6 +33,7 @@ const Config = require('./Config.js')
 
 let config = Config.Config
 let slack = new Slack()
+/** @type {{ message: string, ts: number, color: string }[]} */
 let messagesToSend = []
 /** @type {Config.TaskResult} */
 let taskResult = null
@@ -162,12 +163,25 @@ function isReportingViaConfigEnabled (warning, ignore) {
 }
 
 /**
- * @param {string} uri
+ * @param {Config.Task} task
  */
-async function sendReportWebook (uri) {
-  if (!uri) return
-  slack.setWebhook(uri)
+async function sendReportWebook (task) {
+  if (!task.webhook) return
+  slack.setWebhook(task.webhook)
 
+  const attachmentTemplate = {
+    footer: config.botName || undefined,
+    footer_icon: config.botIcon || undefined,
+    color: '',
+    fallback: '',
+    text: '',
+    ts: 0
+  }
+  const payloadTemplate = {
+    channel: config.slackChannel || undefined,
+    username: config.slackUsername || undefined,
+    attachments: []
+  }
   let payloads = []
   let attachments = []
   messagesToSend = messagesToSend.sort((one, two) => {
@@ -178,11 +192,9 @@ async function sendReportWebook (uri) {
 
   for (let index = 0; index < messagesToSend.length; index++) {
     const { message, ts, color } = messagesToSend[index]
-    const attachment = {
-      footer: config.botName || undefined,
-      footer_icon: config.botIcon || undefined,
-      color: color
-    }
+    const attachment = Object.assign({}, attachmentTemplate)
+    attachmentTemplate.color = color
+
     if (attachment.footer === undefined) delete attachment.footer
     if (attachment.footer_icon === undefined) delete attachment.footer_icon
 
@@ -192,11 +204,8 @@ async function sendReportWebook (uri) {
     attachments.push(attachment)
 
     if (attachments.length > 18 || index === messagesToSend.length - 1) {
-      let payload = {
-        channel: config.slackChannel || undefined,
-        username: config.slackUsername || undefined,
-        attachments: attachments
-      }
+      let payload = Object.assign({}, payloadTemplate)
+      payload.attachments = attachments
       attachments = []
 
       if (payload.channel === undefined) delete payload.channel
@@ -205,8 +214,7 @@ async function sendReportWebook (uri) {
     }
   }
 
-  for (let index = 0; index < payloads.length; index++) {
-    const payload = payloads[index]
+  async function sendWebook (payload) {
     try {
       slack.webhook(payload, (err, response) => {
         if (err) console.log(err, response)
@@ -215,6 +223,24 @@ async function sendReportWebook (uri) {
       // ignore
     }
     await sleep(1000)
+  }
+
+  for (let index = 0; index < payloads.length; index++) {
+    const payload = payloads[index]
+    await sendWebook(payload)
+  }
+
+  if (task.callbackInvokeForced) {
+    const payload = Object.assign({}, payloadTemplate)
+    const attachment = Object.assign({}, attachmentTemplate)
+
+    attachment.color = '#1aaa55' // green
+    attachment.fallback = `No issues found for ${task.host}:${task.port}`
+    attachment.text = attachment.fallback
+    attachment.ts = Date.now() / 1000
+    payload.attachments.push(attachment)
+
+    await sendWebook(payload)
   }
 
   slack.setWebhook('')
@@ -288,7 +314,7 @@ async function sendReportCallback (task, result) {
  * @param {TlsServiceAuditResult} result
  */
 async function sendReport (task, result) {
-  if (task && config.enableSlack && task.webhook) await sendReportWebook(task.webhook)
+  if (task && config.enableSlack && task.webhook) await sendReportWebook(task)
   if (task && task.callback) await sendReportCallback(task, result)
 }
 
@@ -691,13 +717,16 @@ async function handleApiRequest (request, response) {
         }
 
         // i now what i'm doing, it's OK. Trust me... not.
-        // @ts-ignore
-        if (task.callbackRawResultEnabled == 'true') task.callbackRawResultEnabled = true // eslint-disable-line
-        // @ts-ignore
-        if (task.callbackRawResultEnabled == 'false') task.callbackRawResultEnabled = false // eslint-disable-line
-        if (typeof task.callbackRawResultEnabled === 'string') {
-          errorMessages.push({ message: '"callbackRawResultEnabled" has to be of type boolean.' })
+        function validateBoolean (name) {
+          if (task[name] == 'true') task[name] = true // eslint-disable-line
+          if (task[name] == 'false') task[name] = false // eslint-disable-line
+          if (typeof task[name] !== 'boolean') {
+            errorMessages.push({ message: `"${name}" has to be of type boolean but is ${typeof task[name]}.` })
+          }
         }
+
+        validateBoolean('callbackRawResultEnabled')
+        validateBoolean('callbackInvokeForced')
 
         const isValidSingleHost = task.host && typeof task.host === 'string' && task.host.trim().length >= 3
         const isValidMultiHost = task.host instanceof Array && task.host.length > 0 && task.host.every(value => typeof value === 'string' && value.trim().length >= 3)

@@ -58,8 +58,11 @@ function overrideOptionsFromCommandLineArguments () {
 async function run () {
   overrideOptionsFromCommandLineArguments()
   for (const domain of config.domains) {
-    /** @type {Task} */
-    let task = { host: domain.host }
+    /** @type {Config.Task} */
+    let task = {
+      host: domain.host,
+      callbackInvokeForced: false
+    }
     if (config.slackWebHookUri) task.webhook = config.slackWebHookUri
     if (domain.port) task.port = domain.port
     if ((config.ignore && config.ignore.length > 0) || (domain.ignore && domain.ignore.length > 0)) task.ignore = []

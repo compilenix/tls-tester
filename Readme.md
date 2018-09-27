@@ -45,7 +45,8 @@ Here is a example request object defining all supported properties:
   "callback": "https://example.local/tls-test-result",
   "webhook": "https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx",
   "ignore": ["AES128-GCM-SHA256", "AES256-GCM-SHA384", "AES256-SHA256", "AES128-SHA256", "AES256-SHA", "AES128-SHA"],
-  "callbackRawResultEnabled": true
+  "callbackRawResultEnabled": true,
+  "callbackInvokeForced": true
 }
 ```
 
@@ -60,10 +61,17 @@ Following is a example response body:
     "callback": "https://example.local/tls-test-result",
     "webhook": "https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx",
     "ignore": ["AES128-GCM-SHA256", "AES256-GCM-SHA384", "AES256-SHA256", "AES128-SHA256", "AES256-SHA", "AES128-SHA"],
-    "callbackRawResultEnabled": true
+    "callbackRawResultEnabled": true,
+    "callbackInvokeForced": true
   }
 }]
 ```
+
+When `callbackInvokeForced` is set to `true` then the webhook will be invoked, even if there is nothing wrong / to report.
+
+This might look like:
+
+![screenshot3](./screenshot3.png)
 
 #### Add multiple tasks at once to the queue
 The request object might define `host` as `string[]`. This will generate seperate tasks based on the same properties.
