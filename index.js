@@ -193,7 +193,7 @@ async function sendReportWebook (task) {
   for (let index = 0; index < messagesToSend.length; index++) {
     const { message, ts, color } = messagesToSend[index]
     const attachment = Object.assign({}, attachmentTemplate)
-    attachmentTemplate.color = color
+    attachment.color = color
 
     if (attachment.footer === undefined) delete attachment.footer
     if (attachment.footer_icon === undefined) delete attachment.footer_icon
