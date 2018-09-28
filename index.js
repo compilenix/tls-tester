@@ -753,7 +753,8 @@ async function handleApiRequest (request, response) {
               callback: task.callback,
               webhook: task.webhook,
               ignore: task.ignore,
-              callbackRawResultEnabled: task.callbackRawResultEnabled
+              callbackRawResultEnabled: task.callbackRawResultEnabled,
+              callbackInvokeForced: task.callbackInvokeForced
             })
           }
 
