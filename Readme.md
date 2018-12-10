@@ -1,3 +1,6 @@
+# Donate if you want
+https://www.paypal.me/compilenix
+
 # How it looks
 ## Slack
 ![screenshot1](./screenshot1.png)
