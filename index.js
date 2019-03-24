@@ -9,7 +9,6 @@ const { execSync } = require('child_process')
 
 const fs = require('fs-extra')
 const moment = require('moment')
-const Slack = require('slack-node')
 const punycode = require('./node_modules/punycode')
 const argv = require('minimist')(process.argv.slice(2))
 const uuidv4 = require('uuid/v4')
@@ -32,7 +31,8 @@ if (!fs.existsSync('./Config.js')) {
 const Config = require('./Config.js')
 
 let config = Config.Config
-let slack = new Slack()
+// @ts-ignore
+const packageJson = require('./package.json')
 /** @type {{ message: string, ts: number, color: string }[]} */
 let messagesToSend = []
 /** @type {Config.TaskResult} */
@@ -145,7 +145,8 @@ function overrideOptionsFromCommandLineArguments () {
         webhook: '',
         id: '',
         ignore: [],
-        callbackRawResultEnabled: config.callbackRawResultEnabled
+        callbackRawResultEnabled: config.callbackRawResultEnabled,
+        callbackInvokeForced: false
       })
     }
   }
@@ -167,7 +168,6 @@ function isReportingViaConfigEnabled (warning, ignore) {
  */
 async function sendReportWebook (task) {
   if (!task.webhook) return
-  slack.setWebhook(task.webhook)
 
   const attachmentTemplate = {
     footer: config.botName || undefined,
@@ -215,14 +215,40 @@ async function sendReportWebook (task) {
   }
 
   async function sendWebook (payload) {
-    try {
-      slack.webhook(payload, (err, response) => {
-        if (err) console.log(err, response)
-      })
-    } catch (error) {
-      // ignore
-    }
-    await sleep(1000)
+    return new Promise(async (resolve, reject) => {
+      try {
+        const data = JSON.stringify(payload, /* replacer */ null, /* space */ 0)
+        const url = new Url(task.webhook || config.slackWebHookUri)
+        const request = https.request({
+          timeout: 3000,
+          protocol: 'https:',
+          method: 'POST',
+          host: url.host,
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length,
+            'User-Agent': `${packageJson.name}/${packageJson.version} (${packageJson.repository.url}) admin contact: ${config.adminContact}`,
+            'Accept': 'application/json, text/json;q=0.9, */*;q=0',
+            'Accept-Language': 'en',
+            'Accept-Encoding': 'gzip, deflate, identity;q=0.2, *;q=0',
+            'From': config.adminContact // See: https://tools.ietf.org/html/rfc7231#section-5.5.1
+          },
+          hostname: url.hostname,
+          path: `${url.pathname}${url.search}`,
+          // @ts-ignore
+          rejectUnauthorized: config.rejectUnauthorizedSsl
+        }, async res => {
+          await sleep(1000)
+          resolve(res)
+        })
+
+        request.end(data)
+      } catch (error) {
+        if (error) console.error(error)
+        await sleep(1000)
+        reject(error)
+      }
+    })
   }
 
   for (let index = 0; index < payloads.length; index++) {
@@ -242,8 +268,6 @@ async function sendReportWebook (task) {
 
     await sendWebook(payload)
   }
-
-  slack.setWebhook('')
 }
 
 /**
@@ -314,7 +338,7 @@ async function sendReportCallback (task, result) {
  * @param {TlsServiceAuditResult} result
  */
 async function sendReport (task, result) {
-  if (task && config.enableSlack && task.webhook) await sendReportWebook(task)
+  if (task && config.enableSlack && (task.webhook || config.slackWebHookUri)) await sendReportWebook(task)
   if (task && task.callback) await sendReportCallback(task, result)
 }
 
@@ -578,21 +602,33 @@ async function processDomain (task) {
     } catch (e) {
       let error = e
       if (error.error && error.error.code) error = error.error
+
+      if (error.length > 1) {
+        for (const e of error) {
+          if (e.message === 'socket hang up') continue
+          error = e
+          break
+        }
+      }
+
       switch (error.code) {
         case 'ECONNRESET':
-          addMessage(`Connection reset`, task)
+          addMessage(`Connection reset -> ${error.code}`, task)
           break
         case 'ECONNREFUSED':
-          addMessage(`Connection refused (ip: ${error.address || error.message || undefined})`, task)
+          addMessage(`Connection refused -> ${error.code}`, task)
           break
         case 'ETIMEDOUT':
-          addMessage(`Connection timed-out`, task)
+          addMessage(`Connection timed-out -> ${error.code}`, task)
           break
         case 'ENOTFOUND':
-          addMessage(`Host can't be resolved / found -> ENOTFOUND`, task)
+          addMessage(`Host can't be resolved / found -> ${error.code}`, task)
           break
         case 'EAI_AGAIN':
-          addMessage(`Host can't be resolved -> EAI_AGAIN`, task)
+          addMessage(`Host can't be resolved -> ${error.code}`, task)
+          break
+        case 'ENETUNREACH':
+          addMessage(`Host is unreachable -> ${error.code} (${error.address})`, task)
           break
         default:
           addMessage(`\n\`\`\`${JSON.stringify(error, null, 4)}\`\`\``, task)
@@ -796,7 +832,6 @@ function handleApiRequestNextTick (request, response) {
 }
 
 (async () => {
-  slack.setWebhook(config.slackWebHookUri)
   overrideOptionsFromCommandLineArguments()
 
   setInterval(async () => {

@@ -31,7 +31,6 @@
     "moment": "2.22.2",
     "punycode": "2.1.1",
     "semver": "^5.5.1",
-    "slack-node": "0.1.8",
     "tlsinfo": "file:deps/tlsinfo",
     "uuid": "3.3.2"
   },

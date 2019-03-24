@@ -2,6 +2,7 @@ const { TlsServiceAuditResult, HostAddressResult } = require('tlsinfo') // eslin
 
 class Config {
   constructor () {
+    this.adminContact = 'admin@example.com'
     this.startHttpServer = false
     this.httpServerPort = 26591
     this.httpCallbackTimeout = 5000 // applies to webhooks and callbacks
@@ -10,6 +11,7 @@ class Config {
     this.httpCallbacksAllowedFrom = [ ] // string[] of ip addresses allowed HTTP callbacks and webhooks even if httpsCallbacksOnly is set to true
     /** @type {(string | RegExp)[]} */
     this.httpCallbacksAllowedTo = [ ] // webooks / callback urls matching one of the specified entries are allowed to specify HTTP urls even if httpsCallbacksOnly is set to true
+    this.rejectUnauthorizedSsl = true
     this.callbackRawResultEnabled = false
 
     this.validUntilDays = 30
