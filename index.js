@@ -238,14 +238,12 @@ async function sendReportWebook (task) {
           // @ts-ignore
           rejectUnauthorized: config.rejectUnauthorizedSsl
         }, async res => {
-          await sleep(1000)
           resolve(res)
         })
 
         request.end(data)
       } catch (error) {
         if (error) console.error(error)
-        await sleep(1000)
         reject(error)
       }
     })
@@ -254,6 +252,7 @@ async function sendReportWebook (task) {
   for (let index = 0; index < payloads.length; index++) {
     const payload = payloads[index]
     await sendWebook(payload)
+    await sleep(1000) // comply to api rate limiting
   }
 
   if (task.callbackInvokeForced && payloads.length === 0) {
@@ -267,6 +266,7 @@ async function sendReportWebook (task) {
     payload.attachments.push(attachment)
 
     await sendWebook(payload)
+    await sleep(1000) // comply to api rate limiting
   }
 }
 
