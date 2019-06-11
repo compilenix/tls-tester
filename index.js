@@ -477,6 +477,8 @@ function validateCertificateResult (hostSpecificCert, task) {
     if (chain.issuer.cert.publicKey.bitSize < 2048 && isReportingViaConfigEnabled('PubKeySizeOnCA', task.ignore)) {
       addMessage(`Certificate public key size of ${chain.cert.publicKey.bitSize} is < 2048 from issuer ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
     }
+  } else {
+    addMessage(`Incomplete issuer chain`, task, hostSpecificCert.address, LOGLEVEL.Error)
   }
 }
 
