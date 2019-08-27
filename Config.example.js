@@ -8,9 +8,9 @@ class Config {
     this.httpCallbackTimeout = 5000 // applies to webhooks and callbacks
     this.httpsCallbacksOnly = true // applies to webhooks, too
     /** @type {string[]} */
-    this.httpCallbacksAllowedFrom = [ ] // string[] of ip addresses allowed HTTP callbacks and webhooks even if httpsCallbacksOnly is set to true
+    this.httpCallbacksAllowedFrom = [] // string[] of ip addresses allowed HTTP callbacks and webhooks even if httpsCallbacksOnly is set to true
     /** @type {(string | RegExp)[]} */
-    this.httpCallbacksAllowedTo = [ ] // webooks / callback urls matching one of the specified entries are allowed to specify HTTP urls even if httpsCallbacksOnly is set to true
+    this.httpCallbacksAllowedTo = [] // webooks / callback urls matching one of the specified entries are allowed to specify HTTP urls even if httpsCallbacksOnly is set to true
     this.rejectUnauthorizedSsl = true
     this.callbackRawResultEnabled = false
 
