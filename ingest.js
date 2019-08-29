@@ -11,7 +11,7 @@ if (!fs.existsSync('./Config.js')) {
 
 const Config = require('./Config.js')
 
-let config = Config.Config
+const config = Config.Config
 
 function overrideOptionsFromCommandLineArguments () {
   if (process.argv.length < 3) return
@@ -44,13 +44,12 @@ function overrideOptionsFromCommandLineArguments () {
 
   if (domainList !== '') {
     config.domains = []
-    const domains = domainList.split(`,`)
+    const domains = domainList.split(',')
     for (let index = 0; index < domains.length; index++) {
-      const host = domains[index]
-      config.domains.push({
-        host: host,
-        port: config.defaultPort || 443
-      })
+      const task = new Config.Task()
+      task.host = domains[index]
+      task.port = config.defaultPort
+      config.domains.push(task)
     }
   }
 }
@@ -59,10 +58,9 @@ async function run () {
   overrideOptionsFromCommandLineArguments()
   for (const domain of config.domains) {
     /** @type {Config.Task} */
-    let task = {
-      host: domain.host,
-      callbackInvokeForced: false
-    }
+    const task = new Config.Task()
+    task.host = domain.host
+    task.callbackInvokeForced = false
     if (config.slackWebHookUri) task.webhook = config.slackWebHookUri
     if (domain.port) task.port = domain.port
     if ((config.ignore && config.ignore.length > 0) || (domain.ignore && domain.ignore.length > 0)) task.ignore = []
@@ -70,9 +68,9 @@ async function run () {
     if (domain.ignore && domain.ignore.length > 0) task.ignore = domain.ignore.concat(task.ignore)
 
     await new Promise((resolve, reject) => {
-      let url = new Url(`http://127.0.0.1:${config.httpServerPort}/api/enqueue`)
+      const url = new Url(`http://127.0.0.1:${config.httpServerPort}/api/enqueue`)
       /** @type {http.RequestOptions} */
-      let options = {
+      const options = {
         protocol: url.protocol,
         method: 'POST',
         host: url.host,

@@ -30,7 +30,7 @@ if (!fs.existsSync('./Config.js')) {
 
 const Config = require('./Config.js')
 
-let config = Config.Config
+const config = Config.Config
 // @ts-ignore
 const packageJson = require('./package.json')
 /** @type {{ message: string, ts: number, color: string }[]} */
@@ -41,7 +41,7 @@ let isFirstMessageOfItem = true
 let isFirstOveralMessage = true
 let taskRunning = false
 /** @type {Config.Task[]} */
-let tasks = []
+const tasks = []
 /** @type {Config.Task[]} */
 let tasksToEnqueue = []
 const contentTypeJson = 'application/json; charset=utf8'
@@ -135,7 +135,7 @@ function overrideOptionsFromCommandLineArguments () {
 
   if (domainList !== '') {
     config.domains = []
-    const domains = domainList.split(`,`)
+    const domains = domainList.split(',')
     for (let index = 0; index < domains.length; index++) {
       const host = domains[index]
       config.domains.push({
@@ -182,7 +182,7 @@ async function sendReportWebook (task) {
     username: config.slackUsername || undefined,
     attachments: []
   }
-  let payloads = []
+  const payloads = []
   let attachments = []
   messagesToSend = messagesToSend.sort((one, two) => {
     if (one.message < two.message) return -1
@@ -204,7 +204,7 @@ async function sendReportWebook (task) {
     attachments.push(attachment)
 
     if (attachments.length > 18 || index === messagesToSend.length - 1) {
-      let payload = Object.assign({}, payloadTemplate)
+      const payload = Object.assign({}, payloadTemplate)
       payload.attachments = attachments
       attachments = []
 
@@ -215,7 +215,7 @@ async function sendReportWebook (task) {
   }
 
   async function sendWebook (payload) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const data = JSON.stringify(payload, /* replacer */ null, /* space */ 0)
         const url = new Url(task.webhook || config.slackWebHookUri)
@@ -228,10 +228,10 @@ async function sendReportWebook (task) {
             'Content-Type': 'application/json',
             'Content-Length': data.length,
             'User-Agent': `${packageJson.name}/${packageJson.version} (${packageJson.repository.url}) admin contact: ${config.adminContact}`,
-            'Accept': 'application/json, text/json;q=0.9, */*;q=0',
+            Accept: 'application/json, text/json;q=0.9, */*;q=0',
             'Accept-Language': 'en',
             'Accept-Encoding': 'gzip, deflate, identity;q=0.2, *;q=0',
-            'From': config.adminContact // See: https://tools.ietf.org/html/rfc7231#section-5.5.1
+            From: config.adminContact // See: https://tools.ietf.org/html/rfc7231#section-5.5.1
           },
           hostname: url.hostname,
           path: `${url.pathname}${url.search}`,
@@ -276,7 +276,7 @@ async function sendReportWebook (task) {
  */
 async function sendReportCallback (task, result) {
   const callback = new Url(task.callback)
-  let requestOptions = {
+  const requestOptions = {
     timeout: config.httpCallbackTimeout,
     protocol: callback.protocol,
     href: callback.href,
@@ -357,11 +357,11 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
       console.log(`${newLine}${task.host}:${task.port}`)
     }
 
-    console.log(`[${new Date().toUTCString()}] ${hostResult === null ? `` : `${hostResult} -> `}${message.replace(/@channel /, '')}`)
+    console.log(`[${new Date().toUTCString()}] ${hostResult === null ? '' : `${hostResult} -> `}${message.replace(/@channel /, '')}`)
     isFirstMessageOfItem = false
   }
 
-  let messageItem = `${hostResult === null ? `` : `${hostResult} -> `}${message.replace(/@channel /, '')}`
+  let messageItem = `${hostResult === null ? '' : `${hostResult} -> `}${message.replace(/@channel /, '')}`
   if (task && task.callback) {
     if (taskResult === null) {
       taskResult = {
@@ -381,7 +381,7 @@ function addMessage (message, task, hostResult = null, level = LOGLEVEL.Error) {
     return
   }
 
-  messageItem = `${task.host}:${task.port} ${hostResult === null ? `` : `(${hostResult}) -> `}${message}`
+  messageItem = `${task.host}:${task.port} ${hostResult === null ? '' : `(${hostResult}) -> `}${message}`
   let color = '#d50200' // error
   switch (level) {
     case LOGLEVEL.Warning:
@@ -429,7 +429,7 @@ function validateCertificateResult (hostSpecificCert, task) {
   }
 
   if ((!chain.cert.altNames || chain.cert.altNames.length === 0) && isReportingViaConfigEnabled('NoAltName', task.ignore)) {
-    addMessage(`Certificate does not have any altName`, task, hostSpecificCert.address)
+    addMessage('Certificate does not have any altName', task, hostSpecificCert.address)
   }
 
   if (chain.cert.altNames.indexOf(asciiHostname) === -1) {
@@ -462,7 +462,7 @@ function validateCertificateResult (hostSpecificCert, task) {
   }
 
   if (!chain.cert.extensions.cTPrecertificateSCTs && isReportingViaConfigEnabled('NoCertificateTransparency', task.ignore)) {
-    addMessage(`No Certificate Transparency`, task, hostSpecificCert.address, LOGLEVEL.Warning)
+    addMessage('No Certificate Transparency', task, hostSpecificCert.address, LOGLEVEL.Warning)
   }
 
   if (chain.issuer) {
@@ -478,7 +478,7 @@ function validateCertificateResult (hostSpecificCert, task) {
       addMessage(`Certificate public key size of ${chain.cert.publicKey.bitSize} is < 2048 from issuer ${chain.issuer.cert.subject.commonName}`, task, hostSpecificCert.address)
     }
   } else {
-    addMessage(`Incomplete issuer chain`, task, hostSpecificCert.address, LOGLEVEL.Error)
+    addMessage('Incomplete issuer chain', task, hostSpecificCert.address, LOGLEVEL.Error)
   }
 }
 
@@ -589,6 +589,7 @@ async function processDomain (task) {
 
   isFirstMessageOfItem = true
 
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     /** @type {TlsServiceAuditResult} */
     let result = null
@@ -672,11 +673,11 @@ function validateCallback (url = '', request) {
  * @param {http.ServerResponse} response
  */
 async function handleApiRequest (request, response) {
-  return new Promise(async (resolve, reject) => {
-    let { path } = url.parse(request.url)
-    path = path.toLocaleLowerCase()
+  return new Promise((resolve, reject) => {
+    let { pathname } = new url.URL(request.url)
+    pathname = pathname.toLocaleLowerCase()
 
-    if (path === '/api/enqueue') {
+    if (pathname === '/api/enqueue') {
       if (request.method !== 'POST') {
         const message = JSON.stringify({ message: 'Method not allowed.' })
         response.statusCode = 405
@@ -685,7 +686,7 @@ async function handleApiRequest (request, response) {
         return resolve()
       }
 
-      let isImplemented = request.headers['content-type'] && request.headers['content-type'].toLocaleLowerCase().indexOf('json') >= 0
+      const isImplemented = request.headers['content-type'] && request.headers['content-type'].toLocaleLowerCase().indexOf('json') >= 0
 
       if (!isImplemented) {
         const message = JSON.stringify({ message: 'any other content-type than json is not implemented.' })
@@ -746,7 +747,7 @@ async function handleApiRequest (request, response) {
         }
 
         if (task.ignore && task.ignore.length && typeof task.ignore.length === 'number') {
-          let unknowns = []
+          const unknowns = []
           for (const ignores of task.ignore) {
             if (!possibleToIgnoreList.includes(ignores)) unknowns.push(ignores)
           }
@@ -782,7 +783,7 @@ async function handleApiRequest (request, response) {
 
         let message = ''
         if (isValidMultiHost) {
-          let multiTaskInstances = []
+          const multiTaskInstances = []
           for (const host of task.host) {
             multiTaskInstances.push({
               id: uuidv4(),
@@ -801,7 +802,7 @@ async function handleApiRequest (request, response) {
             tasks.push(multiTaskInstance)
           }
         } else { // isValidSingleHost
-          task.id !== '' ? task.id = task.id : task.id = uuidv4()
+          if (task.id === '') task.id = uuidv4()
           message = JSON.stringify([{ message: 'OK', task: task }])
           tasks.push(task)
         }
