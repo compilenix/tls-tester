@@ -674,8 +674,7 @@ function validateCallback (url = '', request) {
  */
 async function handleApiRequest (request, response) {
   return new Promise((resolve, reject) => {
-    let { pathname } = new url.URL(request.url)
-    pathname = pathname.toLocaleLowerCase()
+    const pathname = request.url.toLocaleLowerCase()
 
     if (pathname === '/api/enqueue') {
       if (request.method !== 'POST') {
