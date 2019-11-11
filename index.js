@@ -244,7 +244,7 @@ async function sendReportWebook (task) {
         request.end(data)
       } catch (error) {
         if (error) console.error(error)
-        reject(error)
+        resolve(error)
       }
     })
   }
