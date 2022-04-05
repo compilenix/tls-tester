@@ -28,7 +28,7 @@
     "@types/x509": "file:deps/tlsinfo/types/x509",
     "fs-extra": "^8.1.0",
     "minimist": "^1.2.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "punycode": "^2.1.1",
     "semver": "^6.3.0",
     "tlsinfo": "file:deps/tlsinfo",
